@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -144,6 +145,14 @@ public final class SlotMachineManager {
         return Collections.unmodifiableCollection(machines.values());
     }
 
+    public List<SlotMachineInstance> getMachinesInChunk(World world, int chunkX, int chunkZ) {
+        return machines.values().stream()
+            .filter(instance -> instance.lecternLocation().getWorld().equals(world))
+            .filter(instance -> instance.lecternLocation().getChunk().getX() == chunkX)
+            .filter(instance -> instance.lecternLocation().getChunk().getZ() == chunkZ)
+            .toList();
+    }
+
     public boolean beginSpin(Location location) {
         return activeSpins.add(serializeKey(location));
     }
@@ -161,6 +170,13 @@ public final class SlotMachineManager {
 
     public void spawnAllHandles() {
         for (SlotMachineInstance instance : machines.values()) {
+            spawnHandle(instance);
+        }
+    }
+
+    public void spawnHandle(Location lecternLocation) {
+        SlotMachineInstance instance = machines.get(serializeKey(lecternLocation));
+        if (instance != null) {
             spawnHandle(instance);
         }
     }
@@ -216,7 +232,7 @@ public final class SlotMachineManager {
         return lecternLocation.clone()
             .add(0.5, 1.08, 0.5)
             .add(forward.x() * 0.22, 0.0, forward.z() * 0.22)
-            .add(right.x() * -0.49875, 0.0, right.z() * -0.49875);
+            .add(right.x() * -0.4925, 0.0, right.z() * -0.4925);
     }
 
     public @Nullable ItemDisplay findHandle(Location lecternLocation) {
@@ -289,6 +305,9 @@ public final class SlotMachineManager {
 
     private void spawnHandle(SlotMachineInstance instance) {
         Location lecternLocation = instance.lecternLocation();
+        if (!lecternLocation.isChunkLoaded()) {
+            return;
+        }
         removeHandleEntities(lecternLocation);
 
         World world = lecternLocation.getWorld();

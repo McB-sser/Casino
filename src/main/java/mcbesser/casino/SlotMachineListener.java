@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -17,15 +18,19 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public final class SlotMachineListener implements Listener {
 
     private static final int REEL_COUNT = 3;
+    private static final int SPIN_COST = 1;
     private static final List<Material> SYMBOLS = List.of(
         Material.DIAMOND,
         Material.EMERALD,
@@ -93,6 +98,20 @@ public final class SlotMachineListener implements Listener {
     }
 
     @EventHandler
+    public void onChunkLoad(ChunkLoadEvent event) {
+        for (SlotMachineManager.SlotMachineInstance instance : manager.getMachinesInChunk(
+            event.getWorld(),
+            event.getChunk().getX(),
+            event.getChunk().getZ()
+        )) {
+            if (manager.findHandle(instance.lecternLocation()) == null) {
+                manager.spawnHandle(instance.lecternLocation());
+                break;
+            }
+        }
+    }
+
+    @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
         Block block = event.getBlock();
         if (manager.isMachine(block.getLocation())) {
@@ -115,10 +134,19 @@ public final class SlotMachineListener implements Listener {
             return;
         }
 
+        ItemStack handItem = player.getInventory().getItemInMainHand();
+        if (handItem.getType() != Material.EMERALD || handItem.getAmount() < SPIN_COST) {
+            manager.endSpin(machineLocation);
+            openInfoBook(player);
+            return;
+        }
+
         if (manager.getShelfInventory(machineLocation) == null) {
             manager.endSpin(machineLocation);
             return;
         }
+
+        handItem.subtract(SPIN_COST);
 
         ItemDisplay handle = manager.findHandle(machineLocation);
 
@@ -214,15 +242,101 @@ public final class SlotMachineListener implements Listener {
     }
 
     private void finishSpin(Player player, Location machineCenter, Material[] finalSymbols) {
-        boolean jackpot = finalSymbols[0] == finalSymbols[1] && finalSymbols[1] == finalSymbols[2];
-        if (jackpot) {
-            player.sendMessage(Component.text("Jackpot mit " + formatSymbol(finalSymbols[0]) + "!", NamedTextColor.GOLD));
+        int payout = getPayout(finalSymbols);
+        if (payout > 0) {
+            player.getInventory().addItem(new ItemStack(Material.EMERALD, payout));
+            player.sendMessage(Component.text("Gewinn: " + payout + " Emerald!", NamedTextColor.GOLD));
             player.playSound(machineCenter, Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 1.0f, 1.1f);
             player.playSound(machineCenter, Sound.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.8f, 1.0f);
             return;
         }
 
         player.playSound(machineCenter, Sound.BLOCK_NOTE_BLOCK_BELL, SoundCategory.PLAYERS, 0.7f, 0.9f);
+    }
+
+    private int getPayout(Material[] finalSymbols) {
+        boolean triple = finalSymbols[0] == finalSymbols[1] && finalSymbols[1] == finalSymbols[2];
+        if (triple) {
+            return switch (finalSymbols[0]) {
+                case NETHER_STAR -> 32;
+                case DIAMOND -> 16;
+                case EMERALD -> 12;
+                case GOLD_INGOT -> 8;
+                case BELL -> 6;
+                default -> 5;
+            };
+        }
+
+        int emeraldCount = count(finalSymbols, Material.EMERALD);
+        int diamondCount = count(finalSymbols, Material.DIAMOND);
+        int starCount = count(finalSymbols, Material.NETHER_STAR);
+
+        if (starCount == 2) {
+            return 10;
+        }
+        if (diamondCount == 2) {
+            return 6;
+        }
+        if (emeraldCount == 2) {
+            return 4;
+        }
+        return 0;
+    }
+
+    private int count(Material[] finalSymbols, Material target) {
+        int matches = 0;
+        for (Material symbol : finalSymbols) {
+            if (symbol == target) {
+                matches++;
+            }
+        }
+        return matches;
+    }
+
+    private void openInfoBook(Player player) {
+        ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
+        BookMeta meta = (BookMeta) book.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+
+        meta.title(Component.text("Casino Regeln"));
+        meta.author(Component.text("Casino"));
+        meta.addItemFlags(ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        meta.pages(
+            Component.text("SlotMachine", NamedTextColor.GOLD, TextDecoration.BOLD)
+                .append(Component.newline())
+                .append(Component.text("Einsatz: 1 Emerald", NamedTextColor.DARK_GREEN))
+                .append(Component.newline())
+                .append(Component.text("Mit Emerald in der Hand starten.", NamedTextColor.BLACK))
+                .append(Component.newline())
+                .append(Component.text("Ohne Emerald zeigt dieses Buch die Regeln.", NamedTextColor.DARK_GRAY)),
+            Component.text("Jackpots", NamedTextColor.GOLD, TextDecoration.BOLD)
+                .append(Component.newline())
+                .append(Component.text("3x Nether Star = 32 Emerald", NamedTextColor.BLACK))
+                .append(Component.newline())
+                .append(Component.text("3x Diamond = 16 Emerald", NamedTextColor.BLACK))
+                .append(Component.newline())
+                .append(Component.text("3x Emerald = 12 Emerald", NamedTextColor.BLACK))
+                .append(Component.newline())
+                .append(Component.text("3x Gold Ingot = 8 Emerald", NamedTextColor.BLACK))
+                .append(Component.newline())
+                .append(Component.text("3x Bell = 6 Emerald", NamedTextColor.BLACK))
+                .append(Component.newline())
+                .append(Component.text("3x Sonstiges = 5 Emerald", NamedTextColor.BLACK)),
+            Component.text("Kleine Gewinne", NamedTextColor.GOLD, TextDecoration.BOLD)
+                .append(Component.newline())
+                .append(Component.text("2x Nether Star = 10 Emerald", NamedTextColor.BLACK))
+                .append(Component.newline())
+                .append(Component.text("2x Diamond = 6 Emerald", NamedTextColor.BLACK))
+                .append(Component.newline())
+                .append(Component.text("2x Emerald = 4 Emerald", NamedTextColor.BLACK))
+                .append(Component.newline())
+                .append(Component.newline())
+                .append(Component.text("Nur die sichtbaren 3 Symbole zaehlen.", NamedTextColor.DARK_GRAY))
+        );
+        book.setItemMeta(meta);
+        player.openBook(book);
     }
 
     private Material randomSymbol() {

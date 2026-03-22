@@ -1,0 +1,6 @@
+name: Casino
+version: ${project.version}
+main: mcbesser.casino.CasinoPlugin
+api-version: "1.21"
+author: McB_sser
+description: Casino plugin prototype with a slot machine minigame.

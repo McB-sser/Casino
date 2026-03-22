@@ -8,10 +8,12 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -246,6 +248,7 @@ public final class SlotMachineListener implements Listener {
         if (payout > 0) {
             player.getInventory().addItem(new ItemStack(Material.EMERALD, payout));
             player.sendMessage(Component.text("Gewinn: " + payout + " Emerald!", NamedTextColor.GOLD));
+            playWinEmeraldBurst(machineCenter);
             player.playSound(machineCenter, Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 1.0f, 1.1f);
             player.playSound(machineCenter, Sound.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.8f, 1.0f);
             return;
@@ -291,6 +294,37 @@ public final class SlotMachineListener implements Listener {
             }
         }
         return matches;
+    }
+
+    private void playWinEmeraldBurst(Location machineCenter) {
+        if (machineCenter.getWorld() == null) {
+            return;
+        }
+
+        machineCenter.getWorld().spawnParticle(
+            Particle.HAPPY_VILLAGER,
+            machineCenter.clone().add(0.0, -0.2, 0.0),
+            18,
+            0.35,
+            0.25,
+            0.35,
+            0.02
+        );
+
+        for (int i = 0; i < 5; i++) {
+            Item emerald = machineCenter.getWorld().dropItem(
+                machineCenter.clone().add(0.0, -0.25, 0.0),
+                new ItemStack(Material.EMERALD)
+            );
+            emerald.setPickupDelay(40);
+            emerald.setCanPlayerPickup(false);
+            emerald.setUnlimitedLifetime(false);
+            emerald.setVelocity(emerald.getVelocity().setX((ThreadLocalRandom.current().nextDouble() - 0.5) * 0.22)
+                .setY(0.22 + ThreadLocalRandom.current().nextDouble() * 0.12)
+                .setZ((ThreadLocalRandom.current().nextDouble() - 0.5) * 0.22));
+
+            plugin.getServer().getScheduler().runTaskLater(plugin, emerald::remove, 20L);
+        }
     }
 
     private void openInfoBook(Player player) {

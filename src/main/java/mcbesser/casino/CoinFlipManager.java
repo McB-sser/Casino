@@ -150,9 +150,9 @@ public final class CoinFlipManager {
             return;
         }
 
-        ItemDisplay snow = spawnItemDisplay(location, "snowball_static", Material.SNOWBALL, location.clone().add(0.5, 1.055, 0.508), new Vector3f(0.28f, 0.28f, 0.28f));
+        ItemDisplay snow = spawnItemDisplay(location, "snowball_static", Material.SNOWBALL, location.clone().add(0.492, 1.053, 0.499), new Vector3f(0.28f, 0.28f, 0.28f));
         snow.setTransformation(createCoinFaceTransformation(0.28f, 270.0f));
-        ItemDisplay fire = spawnItemDisplay(location, "fire_static", Material.FIRE_CHARGE, location.clone().add(0.5, 1.048, 0.508), new Vector3f(0.24f, 0.24f, 0.24f));
+        ItemDisplay fire = spawnItemDisplay(location, "fire_static", Material.FIRE_CHARGE, location.clone().add(0.492, 1.047, 0.499), new Vector3f(0.24f, 0.24f, 0.24f));
         fire.setTransformation(createCoinFaceTransformation(0.24f, 90.0f));
         ItemDisplay coinSnow = spawnItemDisplay(location, "coin_flip_snowball", Material.SNOWBALL, location.clone().add(0.5, 1.26, 0.5), new Vector3f(0.34f, 0.34f, 0.34f));
         coinSnow.setTransformation(createCoinFaceTransformation(0.28f, 270.0f));
@@ -206,12 +206,12 @@ public final class CoinFlipManager {
         }
         if (coinSnow != null) {
             coinSnow.setVisibleByDefault(false);
-            coinSnow.teleport(location.clone().add(0.5, 1.055, 0.508));
+            coinSnow.teleport(location.clone().add(0.492, 1.053, 0.499));
             coinSnow.setTransformation(createCoinFaceTransformation(0.28f, 270.0f));
         }
         if (coinFire != null) {
             coinFire.setVisibleByDefault(false);
-            coinFire.teleport(location.clone().add(0.5, 1.048, 0.508));
+            coinFire.teleport(location.clone().add(0.492, 1.047, 0.499));
             coinFire.setTransformation(createCoinFaceTransformation(0.24f, 90.0f));
         }
         setTimerLights(location, 3);

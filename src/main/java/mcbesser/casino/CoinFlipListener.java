@@ -38,6 +38,8 @@ public final class CoinFlipListener implements Listener {
     private static final float FIRE_SCALE = 0.24f;
     private static final double COIN_CENTER_X = 0.492;
     private static final double COIN_CENTER_Z = 0.499;
+    private static final double COIN_TOP_Y = 1.053;
+    private static final double COIN_BOTTOM_Y = 1.041;
     private final JavaPlugin plugin;
     private final CoinFlipManager manager;
     private final Map<String, StreakState> streaks = new HashMap<>();
@@ -184,11 +186,11 @@ public final class CoinFlipListener implements Listener {
                 float spinAngle = progress * 1080.0f;
 
                 if (coinSnow != null && coinSnow.isValid()) {
-                    coinSnow.teleport(location.clone().add(COIN_CENTER_X, y, COIN_CENTER_Z));
+                    coinSnow.teleport(location.clone().add(COIN_CENTER_X, y + (COIN_TOP_Y - 1.053), COIN_CENTER_Z));
                     coinSnow.setTransformation(createFlipTransformation(SNOW_SCALE, spinAngle, false));
                 }
                 if (coinFire != null && coinFire.isValid()) {
-                    coinFire.teleport(location.clone().add(COIN_CENTER_X - 0.004, y - 0.012, COIN_CENTER_Z + 0.003));
+                    coinFire.teleport(location.clone().add(COIN_CENTER_X, y - 0.002, COIN_CENTER_Z));
                     coinFire.setTransformation(createFlipTransformation(FIRE_SCALE, spinAngle, true));
                 }
 
@@ -321,16 +323,14 @@ public final class CoinFlipListener implements Listener {
     private void setResultLayout(Location location, ItemDisplay coinSnow, ItemDisplay coinFire, boolean snowballWins) {
         float snowRoll = snowballWins ? -90.0f : 90.0f;
         float fireRoll = snowballWins ? 90.0f : -90.0f;
-        double topY = 1.053;
-        double bottomY = 1.041;
         if (coinSnow != null && coinSnow.isValid()) {
             coinSnow.setVisibleByDefault(true);
-            coinSnow.teleport(location.clone().add(COIN_CENTER_X, snowballWins ? topY : bottomY, COIN_CENTER_Z));
+            coinSnow.teleport(location.clone().add(COIN_CENTER_X, snowballWins ? COIN_TOP_Y : COIN_BOTTOM_Y, COIN_CENTER_Z));
             coinSnow.setTransformation(createResultTransformation(SNOW_SCALE, snowRoll, false));
         }
         if (coinFire != null && coinFire.isValid()) {
             coinFire.setVisibleByDefault(true);
-            coinFire.teleport(location.clone().add(COIN_CENTER_X, snowballWins ? bottomY : topY, COIN_CENTER_Z));
+            coinFire.teleport(location.clone().add(COIN_CENTER_X, snowballWins ? COIN_BOTTOM_Y : COIN_TOP_Y, COIN_CENTER_Z));
             coinFire.setTransformation(createResultTransformation(FIRE_SCALE, fireRoll, true));
         }
     }

@@ -62,11 +62,10 @@ public final class CoinFlipManager {
             }
 
             Location location = new Location(
-                world,
-                section.getInt(key + ".x"),
-                section.getInt(key + ".y"),
-                section.getInt(key + ".z")
-            );
+                    world,
+                    section.getInt(key + ".x"),
+                    section.getInt(key + ".y"),
+                    section.getInt(key + ".z"));
             games.put(serializeKey(location), new CoinFlipInstance(location));
         }
     }
@@ -127,10 +126,10 @@ public final class CoinFlipManager {
 
     public List<CoinFlipInstance> getGamesInChunk(World world, int chunkX, int chunkZ) {
         return games.values().stream()
-            .filter(instance -> instance.jukeboxLocation().getWorld().equals(world))
-            .filter(instance -> instance.jukeboxLocation().getChunk().getX() == chunkX)
-            .filter(instance -> instance.jukeboxLocation().getChunk().getZ() == chunkZ)
-            .toList();
+                .filter(instance -> instance.jukeboxLocation().getWorld().equals(world))
+                .filter(instance -> instance.jukeboxLocation().getChunk().getX() == chunkX)
+                .filter(instance -> instance.jukeboxLocation().getChunk().getZ() == chunkZ)
+                .toList();
     }
 
     public void spawnAllDisplays() {
@@ -150,18 +149,22 @@ public final class CoinFlipManager {
             return;
         }
 
-        ItemDisplay snow = spawnItemDisplay(location, "snowball_static", Material.SNOWBALL, location.clone().add(0.492, 1.053, 0.499), new Vector3f(0.28f, 0.28f, 0.28f));
+        ItemDisplay snow = spawnItemDisplay(location, "snowball_static", Material.SNOWBALL,
+                location.clone().add(0.49, 1.053, 0.499), new Vector3f(0.28f, 0.28f, 0.28f));
         snow.setTransformation(createCoinFaceTransformation(0.28f, 270.0f));
-        ItemDisplay fire = spawnItemDisplay(location, "fire_static", Material.FIRE_CHARGE, location.clone().add(0.492, 1.047, 0.499), new Vector3f(0.24f, 0.24f, 0.24f));
+        ItemDisplay fire = spawnItemDisplay(location, "fire_static", Material.FIRE_CHARGE,
+                location.clone().add(0.486, 1.049, 0.499), new Vector3f(0.24f, 0.24f, 0.24f));
         fire.setTransformation(createCoinFaceTransformation(0.24f, 90.0f));
-        ItemDisplay coinSnow = spawnItemDisplay(location, "coin_flip_snowball", Material.SNOWBALL, location.clone().add(0.5, 1.26, 0.5), new Vector3f(0.34f, 0.34f, 0.34f));
+        ItemDisplay coinSnow = spawnItemDisplay(location, "coin_flip_snowball", Material.SNOWBALL,
+                location.clone().add(0.5, 1.26, 0.5), new Vector3f(0.34f, 0.34f, 0.34f));
         coinSnow.setTransformation(createCoinFaceTransformation(0.28f, 270.0f));
         coinSnow.setVisibleByDefault(false);
-        ItemDisplay coinFire = spawnItemDisplay(location, "coin_flip_fire", Material.FIRE_CHARGE, location.clone().add(0.5, 1.252, 0.508), new Vector3f(0.31f, 0.31f, 0.31f));
+        ItemDisplay coinFire = spawnItemDisplay(location, "coin_flip_fire", Material.FIRE_CHARGE,
+                location.clone().add(0.5, 1.252, 0.508), new Vector3f(0.31f, 0.31f, 0.31f));
         coinFire.setTransformation(createCoinFaceTransformation(0.24f, 90.0f));
         coinFire.setVisibleByDefault(false);
 
-        double[] xs = {0.38, 0.50, 0.62};
+        double[] xs = { 0.38, 0.50, 0.62 };
         for (int i = 0; i < xs.length; i++) {
             spawnWoolDisplay(location, "timer_" + i, Material.GREEN_WOOL, location.clone().add(xs[i], 1.01, 0.06));
         }
@@ -206,12 +209,12 @@ public final class CoinFlipManager {
         }
         if (coinSnow != null) {
             coinSnow.setVisibleByDefault(false);
-            coinSnow.teleport(location.clone().add(0.492, 1.053, 0.499));
+            coinSnow.teleport(location.clone().add(0.49, 1.053, 0.499));
             coinSnow.setTransformation(createCoinFaceTransformation(0.28f, 270.0f));
         }
         if (coinFire != null) {
             coinFire.setVisibleByDefault(false);
-            coinFire.teleport(location.clone().add(0.492, 1.047, 0.499));
+            coinFire.teleport(location.clone().add(0.486, 1.049, 0.499));
             coinFire.setTransformation(createCoinFaceTransformation(0.24f, 90.0f));
         }
         setTimerLights(location, 3);
@@ -232,7 +235,8 @@ public final class CoinFlipManager {
         }
 
         Block block = location.getBlock();
-        for (BlockFace face : List.of(BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN)) {
+        for (BlockFace face : List.of(BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST, BlockFace.UP,
+                BlockFace.DOWN)) {
             Location frameSearch = block.getRelative(face).getLocation().add(0.5, 0.5, 0.5);
             for (Entity entity : world.getNearbyEntities(frameSearch, 0.6, 0.6, 0.6)) {
                 if (entity instanceof ItemFrame frame && frame.getAttachedFace() == face.getOppositeFace()) {
@@ -270,7 +274,8 @@ public final class CoinFlipManager {
         return null;
     }
 
-    private ItemDisplay spawnItemDisplay(Location gameLocation, String type, Material material, Location spawnLocation, Vector3f scale) {
+    private ItemDisplay spawnItemDisplay(Location gameLocation, String type, Material material, Location spawnLocation,
+            Vector3f scale) {
         World world = gameLocation.getWorld();
         ItemDisplay display = (ItemDisplay) world.spawnEntity(spawnLocation, EntityType.ITEM_DISPLAY);
         display.setItemStack(new ItemStack(material));
@@ -282,11 +287,10 @@ public final class CoinFlipManager {
         display.setInterpolationDuration(1);
         display.setTeleportDuration(1);
         display.setTransformation(new Transformation(
-            new Vector3f(0.0f, 0.0f, 0.0f),
-            new Quaternionf(),
-            scale,
-            new Quaternionf()
-        ));
+                new Vector3f(0.0f, 0.0f, 0.0f),
+                new Quaternionf(),
+                scale,
+                new Quaternionf()));
         display.getPersistentDataContainer().set(gameKey, PersistentDataType.STRING, serializeKey(gameLocation));
         display.getPersistentDataContainer().set(displayTypeKey, PersistentDataType.STRING, type);
         return display;
@@ -300,24 +304,22 @@ public final class CoinFlipManager {
         display.setPersistent(false);
         display.setInvulnerable(true);
         display.setTransformation(new Transformation(
-            new Vector3f(0.0f, 0.0f, 0.0f),
-            new Quaternionf().rotateY((float) Math.toRadians(90.0f)),
-            new Vector3f(0.045f, 0.02f, 0.07f),
-            new Quaternionf()
-        ));
+                new Vector3f(0.0f, 0.0f, 0.0f),
+                new Quaternionf().rotateY((float) Math.toRadians(90.0f)),
+                new Vector3f(0.045f, 0.02f, 0.07f),
+                new Quaternionf()));
         display.getPersistentDataContainer().set(gameKey, PersistentDataType.STRING, serializeKey(gameLocation));
         display.getPersistentDataContainer().set(displayTypeKey, PersistentDataType.STRING, type);
     }
 
     private Transformation createCoinFaceTransformation(float scaleValue, float yawDegrees) {
         return new Transformation(
-            new Vector3f(0.0f, 0.0f, 0.0f),
-            new Quaternionf()
-                .rotateX((float) Math.toRadians(90.0f))
-                .rotateY((float) Math.toRadians(yawDegrees)),
-            new Vector3f(scaleValue, scaleValue, scaleValue),
-            new Quaternionf()
-        );
+                new Vector3f(0.0f, 0.0f, 0.0f),
+                new Quaternionf()
+                        .rotateX((float) Math.toRadians(90.0f))
+                        .rotateY((float) Math.toRadians(yawDegrees)),
+                new Vector3f(scaleValue, scaleValue, scaleValue),
+                new Quaternionf());
     }
 
     private void removeAttachedFrame(Location location, boolean dropItems) {
@@ -335,7 +337,8 @@ public final class CoinFlipManager {
     }
 
     private String serializeKey(Location location) {
-        return location.getWorld().getUID() + ":" + location.getBlockX() + ":" + location.getBlockY() + ":" + location.getBlockZ();
+        return location.getWorld().getUID() + ":" + location.getBlockX() + ":" + location.getBlockY() + ":"
+                + location.getBlockZ();
     }
 
     public record CoinFlipInstance(Location jukeboxLocation) {

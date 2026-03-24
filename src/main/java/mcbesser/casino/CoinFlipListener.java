@@ -190,7 +190,7 @@ public final class CoinFlipListener implements Listener {
                     coinSnow.setTransformation(createFlipTransformation(SNOW_SCALE, spinAngle, false));
                 }
                 if (coinFire != null && coinFire.isValid()) {
-                    coinFire.teleport(location.clone().add(COIN_CENTER_X, y - 0.002, COIN_CENTER_Z));
+                    coinFire.teleport(location.clone().add(COIN_CENTER_X, y - (COIN_TOP_Y - COIN_BOTTOM_Y), COIN_CENTER_Z));
                     coinFire.setTransformation(createFlipTransformation(FIRE_SCALE, spinAngle, true));
                 }
 

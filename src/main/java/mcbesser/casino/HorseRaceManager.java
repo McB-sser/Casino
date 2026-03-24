@@ -255,7 +255,7 @@ public final class HorseRaceManager {
             z = 1.0 - inset - (size * t);
         }
 
-        return lodestoneLocation.clone().add(x, 1.18, z);
+        return lodestoneLocation.clone().add(x, 1.14, z);
     }
 
     public Quaternionf getRacerRotation(double progress) {

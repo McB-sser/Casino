@@ -20,3 +20,14 @@ Danach erscheinen 4 Mini-Racer auf dem Lodestone. Rechtsklick auf den Lodestone:
 
 - mit `1 Emerald` in der Hand: Teilnahme am Rennen
 - ohne Emerald: Buch mit Anleitung und Gewinnregeln
+
+## CoinFlip
+
+1. Setze eine `JUKEBOX`.
+2. Hänge einen `ITEM_FRAME` daran.
+3. Setze einen `SNOWBALL` in den Rahmen.
+
+Danach siehst du Snowball und Fire Charge als CoinFlip-Tisch auf der Jukebox. Rechtsklick:
+
+- mit Emerald in der Hand: CoinFlip starten
+- ohne Emerald: Buch mit Regeln

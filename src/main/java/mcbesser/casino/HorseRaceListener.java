@@ -137,10 +137,12 @@ public final class HorseRaceListener implements Listener {
             private int tick;
             private int finishPause;
             private Integer winner;
+            private boolean raceRemoved;
 
             @Override
             public void run() {
                 if (!lodestone.getChunk().isLoaded() || !manager.isRace(location)) {
+                    raceRemoved = !manager.isRace(location);
                     cleanup();
                     return;
                 }
@@ -178,8 +180,10 @@ public final class HorseRaceListener implements Listener {
                         player.getInventory().addItem(new ItemStack(Material.EMERALD, WIN_PAYOUT));
                         player.sendMessage(Component.text("Dein Pferd gewinnt! +" + WIN_PAYOUT + " Emerald", NamedTextColor.GOLD));
                         playWinBurst(location);
+                        playWinnerSound(location);
                     } else {
                         player.sendMessage(Component.text("Gewonnen hat " + getRacerName(winner) + ".", NamedTextColor.GRAY));
+                        playLoserFinishSound(location);
                     }
                 }
             }
@@ -189,8 +193,10 @@ public final class HorseRaceListener implements Listener {
                 if (frame != null && frame.isValid()) {
                     frame.setItem(new ItemStack(Material.LEATHER_HORSE_ARMOR), false);
                 }
-                manager.endRace(location);
-                manager.spawnRaceDisplays(location);
+                if (!raceRemoved) {
+                    manager.endRace(location);
+                    manager.spawnRaceDisplays(location);
+                }
             }
         }.runTaskTimer(plugin, 0L, RACE_STEP_TICKS);
     }
@@ -232,6 +238,24 @@ public final class HorseRaceListener implements Listener {
             ));
             plugin.getServer().getScheduler().runTaskLater(plugin, emerald::remove, 20L);
         }
+    }
+
+    private void playWinnerSound(Location location) {
+        if (location.getWorld() == null) {
+            return;
+        }
+
+        location.getWorld().playSound(location, Sound.ENTITY_HORSE_AMBIENT, SoundCategory.BLOCKS, 1.0f, 1.25f);
+        location.getWorld().playSound(location, Sound.ENTITY_HORSE_GALLOP, SoundCategory.BLOCKS, 0.9f, 1.15f);
+        location.getWorld().playSound(location, Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.BLOCKS, 0.8f, 1.1f);
+    }
+
+    private void playLoserFinishSound(Location location) {
+        if (location.getWorld() == null) {
+            return;
+        }
+
+        location.getWorld().playSound(location, Sound.ENTITY_HORSE_BREATHE, SoundCategory.BLOCKS, 0.7f, 0.9f);
     }
 
     private boolean isHorseArmor(Material material) {

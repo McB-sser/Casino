@@ -9,9 +9,11 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
@@ -36,6 +38,7 @@ public final class CoinFlipListener implements Listener {
 
     private static final float SNOW_SCALE = 0.28f;
     private static final float FIRE_SCALE = 0.24f;
+    private static final int ENTRY_COST = 1;
     private static final double COIN_CENTER_X = 0.492;
     private static final double COIN_CENTER_Z = 0.499;
     private static final double COIN_TOP_Y = 1.053;
@@ -70,10 +73,8 @@ public final class CoinFlipListener implements Listener {
 
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             if (attached.getType() == Material.JUKEBOX) {
-                frame.setVisible(false);
-                frame.setFixed(true);
+                frame.remove();
                 manager.register(attached);
-                frame.setItem(null, false);
                 attached.getWorld().playSound(attached.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, SoundCategory.BLOCKS, 0.6f, 1.2f);
             }
         });
@@ -103,7 +104,7 @@ public final class CoinFlipListener implements Listener {
 
         int streak = state != null ? state.streak() : 0;
         int pendingPayout = state != null ? state.pendingPayout() : 0;
-        int cost = streak + 1;
+        int cost = ENTRY_COST;
 
         if (hand.getType() != Material.EMERALD || hand.getAmount() < cost) {
             openInfoBook(player);
@@ -162,9 +163,10 @@ public final class CoinFlipListener implements Listener {
         if (coinFire != null) {
             coinFire.setVisibleByDefault(true);
         }
+        manager.setMultiplierDisplay(location, null);
 
         boolean snowballWins = ThreadLocalRandom.current().nextBoolean();
-        int payout = (currentStreak + 1) * 2;
+        int payout = ENTRY_COST * 2;
 
         new BukkitRunnable() {
             private int tick;
@@ -238,15 +240,15 @@ public final class CoinFlipListener implements Listener {
 
         if (snowballWins) {
             int nextPayout = currentPendingPayout > 0 ? currentPendingPayout * 2 : payout;
-            player.sendMessage(Component.text("Gewonnen! Pot: " + nextPayout + " Emerald. Nochmal innerhalb von 4 Sekunden.", NamedTextColor.GOLD));
             location.getWorld().playSound(location, Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.BLOCKS, 0.8f, 1.2f);
             streaks.put(key, new StreakState(player.getUniqueId(), currentStreak + 1, nextPayout));
+            manager.setMultiplierDisplay(location, Component.text("x" + (currentStreak + 2), NamedTextColor.GOLD, TextDecoration.BOLD));
             startCountdown(location, key);
             return;
         }
 
         streaks.remove(key);
-        player.sendMessage(Component.text("Verloren. Fire Charge oben.", NamedTextColor.RED));
+        manager.setMultiplierDisplay(location, null);
         location.getWorld().playSound(location, Sound.BLOCK_FIRE_EXTINGUISH, SoundCategory.BLOCKS, 0.8f, 0.9f);
     }
 
@@ -308,7 +310,7 @@ public final class CoinFlipListener implements Listener {
                 .append(Component.text("Gewinne werden erst nach 4 Sekunden ausgezahlt.", NamedTextColor.BLACK)),
             Component.text("Streak", NamedTextColor.GOLD, TextDecoration.BOLD)
                 .append(Component.newline())
-                .append(Component.text("Einsatz = aktueller Streak + 1 Emerald", NamedTextColor.BLACK))
+                .append(Component.text("Einsatz = immer 1 Emerald", NamedTextColor.BLACK))
                 .append(Component.newline())
                 .append(Component.text("Erster Sieg = 2 Emerald Pot", NamedTextColor.BLACK))
                 .append(Component.newline())
@@ -337,15 +339,19 @@ public final class CoinFlipListener implements Listener {
 
     private void payoutAndReset(Location location, String key) {
         StreakState state = streaks.get(key);
+        Player owner = null;
         if (state != null) {
-            Player owner = plugin.getServer().getPlayer(state.playerId());
+            int multiplier = state.streak() + 1;
+            owner = plugin.getServer().getPlayer(state.playerId());
             if (owner != null && owner.isOnline()) {
                 owner.getInventory().addItem(new ItemStack(Material.EMERALD, state.pendingPayout()));
-                owner.sendMessage(Component.text("Cashout! +" + state.pendingPayout() + " Emerald.", NamedTextColor.GREEN));
+                owner.sendMessage(Component.text("Cashout x" + multiplier + " | +" + state.pendingPayout() + " Emerald", NamedTextColor.GOLD));
             } else if (location.getWorld() != null) {
                 location.getWorld().dropItemNaturally(location.clone().add(0.5, 1.1, 0.5), new ItemStack(Material.EMERALD, state.pendingPayout()));
             }
+            playCashoutEffects(location, owner);
         }
+        manager.setMultiplierDisplay(location, null);
         manager.resetTable(location);
     }
 
@@ -379,6 +385,33 @@ public final class CoinFlipListener implements Listener {
 
     private String serializeKey(Location location) {
         return location.getWorld().getUID() + ":" + location.getBlockX() + ":" + location.getBlockY() + ":" + location.getBlockZ();
+    }
+
+    private void playCashoutEffects(Location location, Player owner) {
+        if (location.getWorld() == null) {
+            return;
+        }
+
+        if (owner != null && owner.isOnline()) {
+            owner.playSound(location, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, SoundCategory.BLOCKS, 0.75f, 1.25f);
+            owner.playSound(location, Sound.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 0.85f, 1.35f);
+            owner.playSound(location, Sound.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.BLOCKS, 0.65f, 1.0f);
+        } else {
+            location.getWorld().playSound(location, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, SoundCategory.BLOCKS, 0.75f, 1.25f);
+            location.getWorld().playSound(location, Sound.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 0.85f, 1.35f);
+            location.getWorld().playSound(location, Sound.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.BLOCKS, 0.65f, 1.0f);
+        }
+        location.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, location.clone().add(0.5, 1.0, 0.5), 14, 0.25, 0.2, 0.25, 0.02);
+        for (int i = 0; i < 4; i++) {
+            Item emerald = location.getWorld().dropItem(location.clone().add(0.5, 0.7, 0.5), new ItemStack(Material.EMERALD));
+            emerald.setPickupDelay(40);
+            emerald.setCanPlayerPickup(false);
+            emerald.setVelocity(new org.bukkit.util.Vector(
+                    (ThreadLocalRandom.current().nextDouble() - 0.5) * 0.18,
+                    0.18 + ThreadLocalRandom.current().nextDouble() * 0.08,
+                    (ThreadLocalRandom.current().nextDouble() - 0.5) * 0.18));
+            plugin.getServer().getScheduler().runTaskLater(plugin, emerald::remove, 20L);
+        }
     }
 
     private Transformation createFlipTransformation(float scale, float flipAngle, boolean backSide) {

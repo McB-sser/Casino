@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -20,6 +21,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.ItemFrame;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -163,6 +165,8 @@ public final class CoinFlipManager {
                 location.clone().add(0.5, 1.252, 0.508), new Vector3f(0.31f, 0.31f, 0.31f));
         coinFire.setTransformation(createCoinFaceTransformation(0.24f, 90.0f));
         coinFire.setVisibleByDefault(false);
+        TextDisplay multiplier = spawnTextDisplay(location, "multiplier", location.clone().add(0.5, 1.18, 0.82));
+        multiplier.setVisibleByDefault(false);
 
         double[] xs = { 0.38, 0.50, 0.62 };
         for (int i = 0; i < xs.length; i++) {
@@ -226,6 +230,25 @@ public final class CoinFlipManager {
 
     public @Nullable BlockDisplay getBlockDisplay(Location location, String type) {
         return getDisplay(location, type, BlockDisplay.class);
+    }
+
+    public @Nullable TextDisplay getTextDisplay(Location location, String type) {
+        return getDisplay(location, type, TextDisplay.class);
+    }
+
+    public void setMultiplierDisplay(Location location, @Nullable Component text) {
+        TextDisplay display = getTextDisplay(location, "multiplier");
+        if (display == null || !display.isValid()) {
+            return;
+        }
+
+        if (text == null) {
+            display.setVisibleByDefault(false);
+            return;
+        }
+
+        display.text(text);
+        display.setVisibleByDefault(true);
     }
 
     public @Nullable ItemFrame findAttachedFrame(Location location) {
@@ -310,6 +333,27 @@ public final class CoinFlipManager {
                 new Quaternionf()));
         display.getPersistentDataContainer().set(gameKey, PersistentDataType.STRING, serializeKey(gameLocation));
         display.getPersistentDataContainer().set(displayTypeKey, PersistentDataType.STRING, type);
+    }
+
+    private TextDisplay spawnTextDisplay(Location gameLocation, String type, Location spawnLocation) {
+        World world = gameLocation.getWorld();
+        TextDisplay display = (TextDisplay) world.spawnEntity(spawnLocation, EntityType.TEXT_DISPLAY);
+        display.setBillboard(Display.Billboard.CENTER);
+        display.setPersistent(false);
+        display.setInvulnerable(true);
+        display.setInterpolationDelay(0);
+        display.setInterpolationDuration(1);
+        display.text(Component.empty());
+        display.setShadowed(true);
+        display.setSeeThrough(false);
+        display.setTransformation(new Transformation(
+                new Vector3f(0.0f, 0.0f, 0.0f),
+                new Quaternionf(),
+                new Vector3f(0.6f, 0.6f, 0.6f),
+                new Quaternionf()));
+        display.getPersistentDataContainer().set(gameKey, PersistentDataType.STRING, serializeKey(gameLocation));
+        display.getPersistentDataContainer().set(displayTypeKey, PersistentDataType.STRING, type);
+        return display;
     }
 
     private Transformation createCoinFaceTransformation(float scaleValue, float yawDegrees) {

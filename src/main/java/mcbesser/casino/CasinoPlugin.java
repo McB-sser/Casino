@@ -8,6 +8,7 @@ public final class CasinoPlugin extends JavaPlugin {
     private HorseRaceManager horseRaceManager;
     private CoinFlipManager coinFlipManager;
     private MemoryManager memoryManager;
+    private GrabberManager grabberManager;
 
     @Override
     public void onEnable() {
@@ -25,11 +26,15 @@ public final class CasinoPlugin extends JavaPlugin {
         memoryManager = new MemoryManager(this);
         memoryManager.load();
         memoryManager.spawnAllDisplays();
+        grabberManager = new GrabberManager(this);
+        grabberManager.load();
+        grabberManager.spawnAllDisplays();
 
         getServer().getPluginManager().registerEvents(new SlotMachineListener(this, slotMachineManager), this);
         getServer().getPluginManager().registerEvents(new HorseRaceListener(this, horseRaceManager), this);
         getServer().getPluginManager().registerEvents(new CoinFlipListener(this, coinFlipManager), this);
         getServer().getPluginManager().registerEvents(new MemoryListener(this, memoryManager), this);
+        getServer().getPluginManager().registerEvents(new GrabberListener(this, grabberManager), this);
     }
 
     @Override
@@ -45,6 +50,9 @@ public final class CasinoPlugin extends JavaPlugin {
         }
         if (memoryManager != null) {
             memoryManager.shutdown();
+        }
+        if (grabberManager != null) {
+            grabberManager.shutdown();
         }
     }
 }

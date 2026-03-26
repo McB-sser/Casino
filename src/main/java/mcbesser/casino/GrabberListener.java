@@ -36,7 +36,9 @@ import org.bukkit.scheduler.BukkitRunnable;
 public final class GrabberListener implements Listener {
 
     private static final int ENTRY_COST = 1;
-    private static final double MAX_DEPTH = 0.82;
+    private static final double MAX_DEPTH = 0.98;
+    private static final int MOVE_STEPS = 9;
+    private static final int DROP_STEPS = 36;
     private static final List<ItemStack> PRIZE_POOL = List.of(
             new ItemStack(Material.EMERALD, 2),
             new ItemStack(Material.DIAMOND),
@@ -107,7 +109,7 @@ public final class GrabberListener implements Listener {
         }
 
         GrabberState state = getOrCreateState(machine.baseLocation());
-        if (state.busy) {
+        if (state.busy || state.moving) {
             return;
         }
         if (state.ownerId == null) {
@@ -171,6 +173,9 @@ public final class GrabberListener implements Listener {
             player.sendMessage(Component.text("Der Greifarm ist gerade unterwegs.", NamedTextColor.YELLOW));
             return;
         }
+        if (state.moving) {
+            return;
+        }
 
         if (state.ownerId == null) {
             hand.subtract(ENTRY_COST);
@@ -186,6 +191,9 @@ public final class GrabberListener implements Listener {
             GrabberManager.Control control) {
         if (state.busy) {
             player.sendMessage(Component.text("Der Greifarm ist gerade unterwegs.", NamedTextColor.YELLOW));
+            return;
+        }
+        if (state.moving) {
             return;
         }
         if (!state.ownerId.equals(player.getUniqueId())) {
@@ -205,17 +213,47 @@ public final class GrabberListener implements Listener {
     }
 
     private void moveControl(GrabberManager.GrabberMachine machine, GrabberState state, GrabberManager.Control control) {
+        int oldCol = state.col;
+        int oldRow = state.row;
         switch (control) {
             case LEFT -> state.col = Math.max(0, state.col - 1);
-            case RIGHT -> state.col = Math.min(2, state.col + 1);
-            case UP -> state.row = Math.max(0, state.row - 1);
-            case DOWN -> state.row = Math.min(2, state.row + 1);
+            case RIGHT -> state.col = Math.min(8, state.col + 1);
+            case UP -> state.row = Math.min(8, state.row + 1);
+            case DOWN -> state.row = Math.max(0, state.row - 1);
             case DROP -> {
                 return;
             }
         }
 
-        manager.updateClaw(machine.baseLocation(), state.col, state.row, 0.0);
+        int targetCol = state.col;
+        int targetRow = state.row;
+        state.moving = true;
+        new BukkitRunnable() {
+            private int step;
+
+            @Override
+            public void run() {
+                if (!manager.isMachine(machine.baseLocation())) {
+                    state.moving = false;
+                    cancel();
+                    return;
+                }
+
+                step++;
+                double progress = Math.min(1.0, step / (double) MOVE_STEPS);
+                double currentCol = oldCol + ((targetCol - oldCol) * progress);
+                double currentRow = oldRow + ((targetRow - oldRow) * progress);
+                manager.updateClaw(machine.baseLocation(), currentCol, currentRow, 0.0);
+
+                if (step < MOVE_STEPS) {
+                    return;
+                }
+
+                state.moving = false;
+                manager.updateClaw(machine.baseLocation(), targetCol, targetRow, 0.0);
+                cancel();
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
         machine.baseLocation().getWorld().playSound(machine.baseLocation(), Sound.UI_BUTTON_CLICK, SoundCategory.BLOCKS, 0.5f, 1.1f);
     }
 
@@ -241,7 +279,7 @@ public final class GrabberListener implements Listener {
 
     private void runGrab(Player player, GrabberManager.GrabberMachine machine, GrabberState state) {
         Location base = machine.baseLocation();
-        int slot = state.row * 3 + state.col;
+        int slot = getCatchSlot(state.col, state.row);
         ItemStack reward = state.prizes.get(slot);
         state.busy = true;
         manager.setStatusText(base, "Greift...");
@@ -261,13 +299,16 @@ public final class GrabberListener implements Listener {
                 }
 
                 step++;
-                double depth = step <= 8 ? (MAX_DEPTH / 8.0) * step : Math.max(0.0, MAX_DEPTH - ((step - 8) * (MAX_DEPTH / 8.0)));
+                double half = DROP_STEPS / 2.0;
+                double depth = step <= half
+                        ? (MAX_DEPTH / half) * step
+                        : Math.max(0.0, MAX_DEPTH - ((step - half) * (MAX_DEPTH / half)));
                 manager.updateClaw(base, state.col, state.row, depth);
                 if (success) {
                     manager.teleportCarriedItem(base, manager.getClawHeadLocation(base, state.col, state.row, depth));
                 }
 
-                if (!resolved && step == 8) {
+                if (!resolved && step == (DROP_STEPS / 2)) {
                     resolved = true;
                     success = reward != null && reward.getType() != Material.AIR && ThreadLocalRandom.current().nextDouble() < 0.38;
                     if (success) {
@@ -280,17 +321,16 @@ public final class GrabberListener implements Listener {
                     }
                 }
 
-                if (step < 16) {
+                if (step < DROP_STEPS) {
                     return;
                 }
 
                 cancel();
-                manager.updateClaw(base, state.col, state.row, 0.0);
                 state.ownerId = null;
-                shufflePrizes(state);
-                syncPrizeDisplays(base, state);
 
                 if (success) {
+                    shufflePrizes(state);
+                    syncPrizeDisplays(base, state);
                     animateWinToChute(player, base, reward, state);
                     return;
                 }
@@ -298,9 +338,9 @@ public final class GrabberListener implements Listener {
                 manager.removeCarriedItem(base);
                 state.busy = false;
                 manager.setStatusText(base, "Daneben");
-                restoreStatusLater(base);
+                returnToStart(base, state);
             }
-        }.runTaskTimer(plugin, 0L, 2L);
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 
     private GrabberState getOrCreateState(Location base) {
@@ -312,8 +352,8 @@ public final class GrabberListener implements Listener {
     }
 
     private GrabberState createState(Location base) {
-        List<ItemStack> prizes = new ArrayList<>(9);
-        for (int i = 0; i < 9; i++) {
+        List<ItemStack> prizes = new ArrayList<>(GrabberManager.PRIZE_DISPLAY_COUNT);
+        for (int i = 0; i < GrabberManager.PRIZE_DISPLAY_COUNT; i++) {
             prizes.add(randomPrize());
         }
         GrabberState state = new GrabberState(prizes);
@@ -355,7 +395,7 @@ public final class GrabberListener implements Listener {
                     base,
                     slot,
                     state.prizes.get(slot),
-                    ThreadLocalRandom.current().nextDouble(0.04, 0.28),
+                    ThreadLocalRandom.current().nextDouble(-0.03, 0.03),
                     ThreadLocalRandom.current().nextFloat(-180.0f, 180.0f),
                     ThreadLocalRandom.current().nextFloat(-35.0f, 35.0f),
                     ThreadLocalRandom.current().nextFloat(-35.0f, 35.0f));
@@ -372,6 +412,10 @@ public final class GrabberListener implements Listener {
         manager.setStatusText(base, "Ausgabe...");
         Location start = manager.getClawHeadLocation(base, state.col, state.row, 0.0);
         Location end = manager.getChuteDropLocation(base);
+        int oldCol = state.col;
+        int oldRow = state.row;
+        state.col = 0;
+        state.row = 0;
 
         new BukkitRunnable() {
             private int tick;
@@ -386,6 +430,9 @@ public final class GrabberListener implements Listener {
 
                 tick++;
                 double progress = Math.min(1.0, tick / 10.0);
+                double currentCol = oldCol + ((0 - oldCol) * progress);
+                double currentRow = oldRow + ((0 - oldRow) * progress);
+                manager.updateClaw(base, currentCol, currentRow, 0.0);
                 Location current = start.clone().add(
                         (end.getX() - start.getX()) * progress,
                         (end.getY() - start.getY()) * progress,
@@ -398,14 +445,95 @@ public final class GrabberListener implements Listener {
 
                 cancel();
                 manager.removeCarriedItem(base);
-                player.getInventory().addItem(reward.clone());
-                player.sendMessage(Component.text("Greifer Erfolg: " + formatReward(reward), NamedTextColor.GOLD));
-                base.getWorld().playSound(base, Sound.ENTITY_ITEM_PICKUP, SoundCategory.BLOCKS, 0.9f, 1.05f);
-                state.busy = false;
-                manager.setStatusText(base, "Gewonnen");
-                restoreStatusLater(base);
+                dropRewardAtFront(player, base, reward, state);
             }
         }.runTaskTimer(plugin, 0L, 2L);
+    }
+
+    private void dropRewardAtFront(Player player, Location base, ItemStack reward, GrabberState state) {
+        Location start = manager.getChuteDropLocation(base).clone().add(0.0, -0.22, 0.0);
+        Location end = manager.getFrontDropLocation(base);
+        manager.spawnFloorReward(base, reward, start);
+        player.getInventory().addItem(reward.clone());
+        player.sendMessage(Component.text("Greifer Erfolg: " + formatReward(reward), NamedTextColor.GOLD));
+        manager.setStatusText(base, "Gewonnen");
+
+        new BukkitRunnable() {
+            private int tick;
+
+            @Override
+            public void run() {
+                if (!manager.isMachine(base)) {
+                    manager.removeFloorReward(base);
+                    cancel();
+                    return;
+                }
+
+                tick++;
+                double progress = Math.min(1.0, tick / 12.0);
+                Location current = start.clone().add(
+                        (end.getX() - start.getX()) * progress,
+                        (end.getY() - start.getY()) * progress,
+                        (end.getZ() - start.getZ()) * progress);
+                manager.teleportFloorReward(base, current);
+
+                if (progress < 1.0) {
+                    return;
+                }
+
+                cancel();
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    manager.removeFloorReward(base);
+                    if (base.getWorld() != null) {
+                        base.getWorld().playSound(base, Sound.ENTITY_ITEM_PICKUP, SoundCategory.BLOCKS, 0.9f, 1.05f);
+                    }
+                    state.busy = false;
+                    returnToStart(base, state);
+                }, 60L);
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private void returnToStart(Location base, GrabberState state) {
+        int oldCol = state.col;
+        int oldRow = state.row;
+        state.col = 0;
+        state.row = 0;
+        state.moving = true;
+
+        new BukkitRunnable() {
+            private int step;
+
+            @Override
+            public void run() {
+                if (!manager.isMachine(base)) {
+                    state.moving = false;
+                    cancel();
+                    return;
+                }
+
+                step++;
+                double progress = Math.min(1.0, step / (double) MOVE_STEPS);
+                double currentCol = oldCol + ((0 - oldCol) * progress);
+                double currentRow = oldRow + ((0 - oldRow) * progress);
+                manager.updateClaw(base, currentCol, currentRow, 0.0);
+
+                if (step < MOVE_STEPS) {
+                    return;
+                }
+
+                state.moving = false;
+                manager.updateClaw(base, 0.0, 0.0, 0.0);
+                restoreStatusLater(base);
+                cancel();
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private int getCatchSlot(int col, int row) {
+        int catchCol = Math.max(0, Math.min(2, Math.round(col / 4.0f)));
+        int catchRow = Math.max(0, Math.min(2, Math.round(row / 4.0f)));
+        return (catchRow * 3) + catchCol;
     }
 
     private ItemStack randomPrize() {
@@ -424,6 +552,9 @@ public final class GrabberListener implements Listener {
     private String buildStatusText(GrabberState state) {
         if (state.busy) {
             return "Greift...";
+        }
+        if (state.moving) {
+            return "Bewegt...";
         }
         if (state.ownerId == null) {
             return "Start: 1 Emerald";
@@ -471,9 +602,10 @@ public final class GrabberListener implements Listener {
 
     private static final class GrabberState {
         private final List<ItemStack> prizes;
-        private int col = 1;
-        private int row = 1;
+        private int col = 0;
+        private int row = 0;
         private boolean busy;
+        private boolean moving;
         private UUID ownerId;
 
         private GrabberState(List<ItemStack> prizes) {

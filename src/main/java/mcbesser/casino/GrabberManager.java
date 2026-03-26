@@ -32,6 +32,7 @@ import org.joml.Vector3f;
 public final class GrabberManager {
 
     private static final String CONFIG_ROOT = "grabber-machines";
+    public static final int PRIZE_DISPLAY_COUNT = 29;
 
     private final JavaPlugin plugin;
     private final NamespacedKey machineKey;
@@ -174,10 +175,11 @@ public final class GrabberManager {
         for (Control control : Control.values()) {
             spawnControlDisplay(machine, control);
         }
-        for (int slot = 0; slot < 9; slot++) {
+        for (int slot = 0; slot < PRIZE_DISPLAY_COUNT; slot++) {
             spawnPrizeDisplay(machine, slot, new ItemStack(Material.AIR));
         }
         spawnChuteDisplay(machine);
+        spawnInputDisplay(machine);
         spawnClawCable(machine);
         spawnClawHead(machine);
         spawnStatusDisplay(machine);
@@ -240,6 +242,10 @@ public final class GrabberManager {
     }
 
     public void updateClaw(Location base, int col, int row, double depth) {
+        updateClaw(base, (double) col, (double) row, depth);
+    }
+
+    public void updateClaw(Location base, double col, double row, double depth) {
         GrabberMachine machine = getMachine(base);
         if (machine == null) {
             return;
@@ -251,20 +257,34 @@ public final class GrabberManager {
             return;
         }
 
-        cable.teleport(getCableLocation(machine, col, row, depth));
+        Location cableLocation = getCableLocation(machine, col, row, depth);
+        Location headLocation = getHeadLocation(machine, col, row, depth);
+        cable.teleport(cableLocation);
         cable.setTransformation(new Transformation(
                 new Vector3f(),
                 getFlatRotation(machine.front()),
-                new Vector3f(0.4f, (float) Math.max(0.55, 1.0 + depth), 0.4f),
+                new Vector3f(0.18f, (float) Math.max(0.26, 0.38f + ((float) depth * 0.78f)), 0.18f),
                 new Quaternionf()));
 
-        head.teleport(getHeadLocation(machine, col, row, depth));
+        head.teleport(headLocation);
+        head.setTransformation(new Transformation(
+                new Vector3f(),
+                new Quaternionf().rotateY((float) Math.toRadians(90)),
+                new Vector3f(0.16f, 0.16f, 0.16f),
+                new Quaternionf()));
     }
 
     public Location getClawHeadLocation(Location base, int col, int row, double depth) {
+        return getClawHeadLocation(base, (double) col, (double) row, depth);
+    }
+
+    public Location getClawHeadLocation(Location base, double col, double row, double depth) {
         GrabberMachine machine = getMachine(base);
         if (machine == null) {
             return base.clone().add(0.5, 1.5, 0.5);
+        }
+        if (depth <= 0.0 || (col == 0.0 && row == 0.0)) {
+            return getInputLocation(machine).clone().add(0.0, -0.24, 0.0);
         }
         return getHeadLocation(machine, col, row, depth);
     }
@@ -274,7 +294,66 @@ public final class GrabberManager {
         if (machine == null) {
             return base.clone().add(0.2, 0.6, 0.2);
         }
-        return getChuteLocation(machine).clone().add(0.0, 0.18, 0.0);
+        return getInputLocation(machine).clone().add(0.0, 0.18, 0.0);
+    }
+
+    public Location getFrontDropLocation(Location base) {
+        GrabberMachine machine = getMachine(base);
+        if (machine == null) {
+            return base.clone().add(0.5, 0.05, 1.05);
+        }
+        Location location = machine.baseLocation().clone().add(0.5, 0.04, 0.5);
+        addFaceOffset(location, machine.front(), 1.14);
+        addFaceOffset(location, rotateRight(machine.front()), 0.04);
+        addFaceOffset(location, machine.front().getOppositeFace(), 0.04);
+        return location;
+    }
+
+    public void spawnFloorReward(Location base, ItemStack stack) {
+        spawnFloorReward(base, stack, getFrontDropLocation(base));
+    }
+
+    public void spawnFloorReward(Location base, ItemStack stack, Location location) {
+        removeFloorReward(base);
+        GrabberMachine machine = getMachine(base);
+        if (machine == null) {
+            return;
+        }
+        World world = base.getWorld();
+        if (world == null) {
+            return;
+        }
+
+        ItemDisplay display = (ItemDisplay) world.spawnEntity(location, EntityType.ITEM_DISPLAY);
+        display.setItemStack(stack.clone());
+        display.setBillboard(Display.Billboard.FIXED);
+        display.setGravity(false);
+        display.setPersistent(false);
+        display.setInvulnerable(true);
+        display.setInterpolationDelay(0);
+        display.setInterpolationDuration(1);
+        display.setTeleportDuration(1);
+        display.setTransformation(new Transformation(
+                new Vector3f(),
+                new Quaternionf().rotateX((float) Math.toRadians(90)),
+                new Vector3f(0.36f, 0.36f, 0.36f),
+                new Quaternionf()));
+        display.getPersistentDataContainer().set(machineKey, PersistentDataType.STRING, serializeKey(machine.baseLocation()));
+        display.getPersistentDataContainer().set(typeKey, PersistentDataType.STRING, "floor_reward");
+    }
+
+    public void teleportFloorReward(Location base, Location location) {
+        ItemDisplay display = getItemDisplayByType(base, "floor_reward");
+        if (display != null && display.isValid()) {
+            display.teleport(location);
+        }
+    }
+
+    public void removeFloorReward(Location base) {
+        ItemDisplay display = getItemDisplayByType(base, "floor_reward");
+        if (display != null && display.isValid()) {
+            display.remove();
+        }
     }
 
     public void spawnCarriedItem(Location base, ItemStack stack) {
@@ -409,8 +488,8 @@ public final class GrabberManager {
         display.setTransformation(new Transformation(
                 new Vector3f(),
                 getArrowRotation(machine.front(), control),
-                new Vector3f(control == Control.DROP ? 0.26f : 0.28f, control == Control.DROP ? 0.26f : 0.28f,
-                        control == Control.DROP ? 0.26f : 0.28f),
+                new Vector3f(control == Control.DROP ? 0.24f : 0.28f, control == Control.DROP ? 0.24f : 0.28f,
+                        control == Control.DROP ? 0.24f : 0.28f),
                 new Quaternionf()));
         display.getPersistentDataContainer().set(machineKey, PersistentDataType.STRING, serializeKey(machine.baseLocation()));
         display.getPersistentDataContainer().set(typeKey, PersistentDataType.STRING, "control");
@@ -423,7 +502,7 @@ public final class GrabberManager {
             return;
         }
 
-        ItemDisplay display = (ItemDisplay) world.spawnEntity(getPrizeLocation(machine, slot, 0.08), EntityType.ITEM_DISPLAY);
+        ItemDisplay display = (ItemDisplay) world.spawnEntity(getPrizeLocation(machine, slot, 0.0), EntityType.ITEM_DISPLAY);
         display.setItemStack(stack.getType() == Material.AIR ? null : stack.clone());
         display.setBillboard(Display.Billboard.FIXED);
         display.setGravity(false);
@@ -449,7 +528,7 @@ public final class GrabberManager {
         }
 
         BlockDisplay display = (BlockDisplay) world.spawnEntity(getChuteLocation(machine), EntityType.BLOCK_DISPLAY);
-        display.setBlock(Material.BLACK_STAINED_GLASS.createBlockData());
+        display.setBlock(Material.CAULDRON.createBlockData());
         display.setBillboard(Display.Billboard.FIXED);
         display.setPersistent(false);
         display.setInvulnerable(true);
@@ -459,10 +538,33 @@ public final class GrabberManager {
         display.setTransformation(new Transformation(
                 new Vector3f(),
                 new Quaternionf(),
-                new Vector3f(0.32f, 0.32f, 0.32f),
+                new Vector3f(0.28f, 0.28f, 0.28f),
                 new Quaternionf()));
         display.getPersistentDataContainer().set(machineKey, PersistentDataType.STRING, serializeKey(machine.baseLocation()));
         display.getPersistentDataContainer().set(typeKey, PersistentDataType.STRING, "chute");
+    }
+
+    private void spawnInputDisplay(GrabberMachine machine) {
+        World world = machine.baseLocation().getWorld();
+        if (world == null) {
+            return;
+        }
+
+        BlockDisplay display = (BlockDisplay) world.spawnEntity(getInputLocation(machine), EntityType.BLOCK_DISPLAY);
+        display.setBlock(Material.CAULDRON.createBlockData());
+        display.setBillboard(Display.Billboard.FIXED);
+        display.setPersistent(false);
+        display.setInvulnerable(true);
+        display.setInterpolationDelay(0);
+        display.setInterpolationDuration(1);
+        display.setTeleportDuration(1);
+        display.setTransformation(new Transformation(
+                new Vector3f(),
+                new Quaternionf(),
+                new Vector3f(0.28f, 0.28f, 0.28f),
+                new Quaternionf()));
+        display.getPersistentDataContainer().set(machineKey, PersistentDataType.STRING, serializeKey(machine.baseLocation()));
+        display.getPersistentDataContainer().set(typeKey, PersistentDataType.STRING, "input");
     }
 
     private void spawnClawCable(GrabberMachine machine) {
@@ -471,7 +573,7 @@ public final class GrabberManager {
             return;
         }
 
-        ItemDisplay display = (ItemDisplay) world.spawnEntity(getCableLocation(machine, 1, 1, 0.0), EntityType.ITEM_DISPLAY);
+        ItemDisplay display = (ItemDisplay) world.spawnEntity(getInputLocation(machine), EntityType.ITEM_DISPLAY);
         display.setItemStack(new ItemStack(Material.IRON_CHAIN));
         display.setBillboard(Display.Billboard.FIXED);
         display.setGravity(false);
@@ -495,7 +597,7 @@ public final class GrabberManager {
             return;
         }
 
-        ItemDisplay display = (ItemDisplay) world.spawnEntity(getHeadLocation(machine, 1, 1, 0.0), EntityType.ITEM_DISPLAY);
+        ItemDisplay display = (ItemDisplay) world.spawnEntity(getInputLocation(machine).clone().add(0.0, -0.24, 0.0), EntityType.ITEM_DISPLAY);
         display.setItemStack(new ItemStack(Material.ANVIL));
         display.setBillboard(Display.Billboard.FIXED);
         display.setGravity(false);
@@ -507,7 +609,7 @@ public final class GrabberManager {
         display.setTransformation(new Transformation(
                 new Vector3f(),
                 new Quaternionf().rotateY((float) Math.toRadians(90)),
-                new Vector3f(0.3f, 0.3f, 0.3f),
+                new Vector3f(0.16f, 0.16f, 0.16f),
                 new Quaternionf()));
         display.getPersistentDataContainer().set(machineKey, PersistentDataType.STRING, serializeKey(machine.baseLocation()));
         display.getPersistentDataContainer().set(typeKey, PersistentDataType.STRING, "head");
@@ -607,30 +709,43 @@ public final class GrabberManager {
     private Location getPrizeLocation(GrabberMachine machine, int slot, double depthOffset) {
         BlockFace front = machine.front();
         BlockFace right = rotateRight(front);
-        int row = slot / 3;
-        int col = slot % 3;
-        double[] offsets = {-0.26, 0.0, 0.26};
+        double[][] positions = {
+                {-0.28, 0.28}, {-0.14, 0.28}, {0.0, 0.28}, {0.14, 0.28}, {0.28, 0.28},
+                {-0.28, 0.14}, {-0.14, 0.14}, {0.0, 0.14}, {0.14, 0.14}, {0.28, 0.14},
+                {-0.28, 0.0}, {-0.14, 0.0}, {0.0, 0.0}, {0.14, 0.0}, {0.28, 0.0},
+                {-0.28, -0.14}, {-0.14, -0.14}, {0.0, -0.14}, {0.14, -0.14}, {0.28, -0.14},
+                {-0.28, -0.28}, {-0.14, -0.28}, {0.0, -0.28}, {0.14, -0.28}, {0.28, -0.28},
+                {-0.07, 0.07}, {0.07, 0.07}, {-0.07, -0.07}, {0.07, -0.07}
+        };
+        int safeSlot = Math.max(0, Math.min(positions.length - 1, slot));
         Location location = machine.baseLocation().clone().add(0.5, 1.04, 0.5);
-        addFaceOffset(location, right, offsets[col]);
-        addFaceOffset(location, front, depthOffset + (row * 0.08));
+        addFaceOffset(location, right, positions[safeSlot][0]);
+        addFaceOffset(location, front, positions[safeSlot][1] + depthOffset);
         return location;
     }
 
-    private Location getCableLocation(GrabberMachine machine, int col, int row, double depth) {
-        return getGridLocation(machine, col, row).add(0.0, 1.2 - (depth / 2.0), 0.0);
+    private Location getCableLocation(GrabberMachine machine, double col, double row, double depth) {
+        return getGridLocation(machine, col, row).add(0.0, 1.30 - (depth * 0.04), 0.0);
     }
 
-    private Location getHeadLocation(GrabberMachine machine, int col, int row, double depth) {
-        return getGridLocation(machine, col, row).add(0.0, 0.82 - depth, 0.0);
+    private Location getHeadLocation(GrabberMachine machine, double col, double row, double depth) {
+        return getGridLocation(machine, col, row).add(0.0, 1.08 - (depth * 0.42), 0.0);
     }
 
-    private Location getGridLocation(GrabberMachine machine, int col, int row) {
+    private Location getGridLocation(GrabberMachine machine, double col, double row) {
         BlockFace right = rotateRight(machine.front());
-        double[] offsets = {0.26, 0.0, -0.26};
         Location location = machine.baseLocation().clone().add(0.5, 0.5, 0.5);
-        addFaceOffset(location, right, offsets[col]);
-        addFaceOffset(location, machine.front(), 0.06 + (row * 0.18));
+        double lateral = mapRange(col, 0.0, 8.0, 0.32, -0.32);
+        double forward = mapRange(row, 0.0, 8.0, 0.26, -0.26);
+        addFaceOffset(location, right, lateral);
+        addFaceOffset(location, machine.front(), forward);
         return location;
+    }
+
+    private double mapRange(double value, double inMin, double inMax, double outMin, double outMax) {
+        double clamped = Math.max(inMin, Math.min(inMax, value));
+        double progress = (clamped - inMin) / (inMax - inMin);
+        return outMin + ((outMax - outMin) * progress);
     }
 
     private Location getStatusLocation(GrabberMachine machine) {
@@ -641,9 +756,18 @@ public final class GrabberManager {
 
     private Location getChuteLocation(GrabberMachine machine) {
         BlockFace right = rotateRight(machine.front());
-        Location location = machine.baseLocation().clone().add(0.5, 0.2, 0.5);
-        addFaceOffset(location, machine.front(), 0.82);
-        addFaceOffset(location, right, -0.31);
+        Location location = getShelfSlotLocation(machine, 3);
+        addFaceOffset(location, machine.front(), 0.04);
+        addFaceOffset(location, right, -0.12);
+        location.add(0.0, -0.18, 0.0);
+        return location;
+    }
+
+    private Location getInputLocation(GrabberMachine machine) {
+        BlockFace right = rotateRight(machine.front());
+        Location location = getChuteLocation(machine).clone().add(0.0, 0.72, 0.0);
+        addFaceOffset(location, machine.front().getOppositeFace(), 0.16);
+        addFaceOffset(location, right, 0.04);
         return location;
     }
 
@@ -651,7 +775,7 @@ public final class GrabberManager {
         BlockFace right = rotateRight(machine.front());
         int slotRow = slot / 3;
         int slotCol = slot % 3;
-        double[] slotX = { -0.265, 0.0, 0.265 };
+        double[] slotX = { 0.265, 0.0, -0.265 };
         double[] slotY = { 0.25, -0.25 };
 
         Location location = machine.baseLocation().clone().add(0.5, 0.5, 0.5);
@@ -671,11 +795,11 @@ public final class GrabberManager {
         };
         Quaternionf rotation = new Quaternionf().rotateY(yaw);
         return switch (control) {
-            case LEFT -> rotation.rotateZ((float) Math.toRadians(180));
-            case UP -> rotation.rotateZ((float) Math.toRadians(-90));
-            case DOWN -> rotation.rotateZ((float) Math.toRadians(90));
+            case LEFT -> rotation.rotateZ((float) Math.toRadians(45));
+            case UP -> rotation.rotateZ((float) Math.toRadians(-45));
+            case DOWN -> rotation.rotateZ((float) Math.toRadians(135));
             case DROP -> rotation;
-            case RIGHT -> rotation;
+            case RIGHT -> rotation.rotateZ((float) Math.toRadians(-135));
         };
     }
 

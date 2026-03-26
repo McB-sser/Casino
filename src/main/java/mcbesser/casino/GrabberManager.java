@@ -261,7 +261,7 @@ public final class GrabberManager {
         Location headLocation = getHeadLocation(machine, col, row, depth);
         cable.teleport(cableLocation);
         cable.setTransformation(new Transformation(
-                new Vector3f(),
+                new Vector3f(0.0f, 0.0f, 0.0f),
                 getFlatRotation(machine.front()),
                 new Vector3f(0.18f, (float) Math.max(0.26, 0.38f + ((float) depth * 0.78f)), 0.18f),
                 new Quaternionf()));
@@ -283,7 +283,7 @@ public final class GrabberManager {
         if (machine == null) {
             return base.clone().add(0.5, 1.5, 0.5);
         }
-        if (depth <= 0.0 || (col == 0.0 && row == 0.0)) {
+        if (depth <= 0.0 && col == 0.0 && row == 0.0) {
             return getInputLocation(machine).clone().add(0.0, -0.24, 0.0);
         }
         return getHeadLocation(machine, col, row, depth);
@@ -302,10 +302,9 @@ public final class GrabberManager {
         if (machine == null) {
             return base.clone().add(0.5, 0.05, 1.05);
         }
-        Location location = machine.baseLocation().clone().add(0.5, 0.04, 0.5);
-        addFaceOffset(location, machine.front(), 1.14);
+        Location location = getChuteLocation(machine).clone().add(0.0, 0.02, 0.0);
+        addFaceOffset(location, machine.front(), 0.10);
         addFaceOffset(location, rotateRight(machine.front()), 0.04);
-        addFaceOffset(location, machine.front().getOppositeFace(), 0.04);
         return location;
     }
 
@@ -357,6 +356,10 @@ public final class GrabberManager {
     }
 
     public void spawnCarriedItem(Location base, ItemStack stack) {
+        spawnCarriedItem(base, stack, null);
+    }
+
+    public void spawnCarriedItem(Location base, ItemStack stack, @Nullable Location locationOverride) {
         removeCarriedItem(base);
         GrabberMachine machine = getMachine(base);
         if (machine == null) {
@@ -367,7 +370,8 @@ public final class GrabberManager {
             return;
         }
 
-        ItemDisplay display = (ItemDisplay) world.spawnEntity(getHeadLocation(machine, 1, 1, 0.0), EntityType.ITEM_DISPLAY);
+        Location spawnLocation = locationOverride == null ? getHeadLocation(machine, 1, 1, 0.0) : locationOverride;
+        ItemDisplay display = (ItemDisplay) world.spawnEntity(spawnLocation, EntityType.ITEM_DISPLAY);
         display.setItemStack(stack.clone());
         display.setBillboard(Display.Billboard.FIXED);
         display.setGravity(false);
@@ -383,6 +387,18 @@ public final class GrabberManager {
                 new Quaternionf()));
         display.getPersistentDataContainer().set(machineKey, PersistentDataType.STRING, serializeKey(machine.baseLocation()));
         display.getPersistentDataContainer().set(typeKey, PersistentDataType.STRING, "carried");
+    }
+
+    public Location getPrizeCarryLocation(Location base, int slot) {
+        ItemDisplay display = getPrizeDisplay(base, slot);
+        if (display != null && display.isValid()) {
+            return display.getLocation();
+        }
+        GrabberMachine machine = getMachine(base);
+        if (machine == null) {
+            return base.clone().add(0.5, 1.0, 0.5);
+        }
+        return getPrizeLocation(machine, slot, 0.0);
     }
 
     public void teleportCarriedItem(Location base, Location location) {
@@ -725,7 +741,7 @@ public final class GrabberManager {
     }
 
     private Location getCableLocation(GrabberMachine machine, double col, double row, double depth) {
-        return getGridLocation(machine, col, row).add(0.0, 1.30 - (depth * 0.04), 0.0);
+        return getGridLocation(machine, col, row).add(0.0, 1.30, 0.0);
     }
 
     private Location getHeadLocation(GrabberMachine machine, double col, double row, double depth) {
@@ -766,8 +782,8 @@ public final class GrabberManager {
     private Location getInputLocation(GrabberMachine machine) {
         BlockFace right = rotateRight(machine.front());
         Location location = getChuteLocation(machine).clone().add(0.0, 0.72, 0.0);
-        addFaceOffset(location, machine.front().getOppositeFace(), 0.16);
-        addFaceOffset(location, right, 0.04);
+        addFaceOffset(location, machine.front().getOppositeFace(), 0.14);
+        addFaceOffset(location, right, 0.0125);
         return location;
     }
 

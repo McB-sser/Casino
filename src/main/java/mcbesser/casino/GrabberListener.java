@@ -254,7 +254,7 @@ public final class GrabberListener implements Listener {
                 cancel();
             }
         }.runTaskTimer(plugin, 0L, 1L);
-        machine.baseLocation().getWorld().playSound(machine.baseLocation(), Sound.UI_BUTTON_CLICK, SoundCategory.BLOCKS, 0.5f, 1.1f);
+        machine.baseLocation().getWorld().playSound(machine.baseLocation(), Sound.BLOCK_PISTON_EXTEND, SoundCategory.BLOCKS, 0.45f, 1.35f);
     }
 
     @EventHandler
@@ -312,8 +312,9 @@ public final class GrabberListener implements Listener {
                     resolved = true;
                     success = reward != null && reward.getType() != Material.AIR && ThreadLocalRandom.current().nextDouble() < 0.38;
                     if (success) {
+                        Location carryStart = manager.getPrizeCarryLocation(base, slot).clone().add(0.0, -0.08, 0.0);
+                        manager.spawnCarriedItem(base, reward, carryStart);
                         manager.setPrizeItem(base, slot, new ItemStack(Material.AIR), 0.08, 0.0f, 0.0f, 0.0f);
-                        manager.spawnCarriedItem(base, reward);
                         base.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, base.clone().add(0.5, 1.15, 0.5), 8, 0.22, 0.12, 0.22, 0.01);
                         base.getWorld().playSound(base, Sound.ENTITY_ITEM_PICKUP, SoundCategory.BLOCKS, 0.8f, 1.2f);
                     } else {
@@ -329,8 +330,6 @@ public final class GrabberListener implements Listener {
                 state.ownerId = null;
 
                 if (success) {
-                    shufflePrizes(state);
-                    syncPrizeDisplays(base, state);
                     animateWinToChute(player, base, reward, state);
                     return;
                 }
@@ -410,8 +409,6 @@ public final class GrabberListener implements Listener {
 
     private void animateWinToChute(Player player, Location base, ItemStack reward, GrabberState state) {
         manager.setStatusText(base, "Ausgabe...");
-        Location start = manager.getClawHeadLocation(base, state.col, state.row, 0.0);
-        Location end = manager.getChuteDropLocation(base);
         int oldCol = state.col;
         int oldRow = state.row;
         state.col = 0;
@@ -433,6 +430,39 @@ public final class GrabberListener implements Listener {
                 double currentCol = oldCol + ((0 - oldCol) * progress);
                 double currentRow = oldRow + ((0 - oldRow) * progress);
                 manager.updateClaw(base, currentCol, currentRow, 0.0);
+                manager.teleportCarriedItem(base, manager.getClawHeadLocation(base, currentCol, currentRow, 0.0));
+
+                if (progress < 1.0) {
+                    return;
+                }
+
+                cancel();
+                dropRewardAtFront(player, base, reward, state);
+            }
+        }.runTaskTimer(plugin, 0L, 2L);
+    }
+
+    private void dropRewardAtFront(Player player, Location base, ItemStack reward, GrabberState state) {
+        Location start = manager.getClawHeadLocation(base, 0.0, 0.0, 0.0);
+        Location end = manager.getFrontDropLocation(base);
+        player.getInventory().addItem(reward.clone());
+        player.sendMessage(Component.text("Greifer Erfolg: " + formatReward(reward), NamedTextColor.GOLD));
+        manager.setStatusText(base, "Gewonnen");
+
+        new BukkitRunnable() {
+            private int tick;
+
+            @Override
+            public void run() {
+                if (!manager.isMachine(base)) {
+                    manager.removeCarriedItem(base);
+                    manager.removeFloorReward(base);
+                    cancel();
+                    return;
+                }
+
+                tick++;
+                double progress = Math.min(1.0, tick / 32.0);
                 Location current = start.clone().add(
                         (end.getX() - start.getX()) * progress,
                         (end.getY() - start.getY()) * progress,
@@ -445,45 +475,11 @@ public final class GrabberListener implements Listener {
 
                 cancel();
                 manager.removeCarriedItem(base);
-                dropRewardAtFront(player, base, reward, state);
-            }
-        }.runTaskTimer(plugin, 0L, 2L);
-    }
-
-    private void dropRewardAtFront(Player player, Location base, ItemStack reward, GrabberState state) {
-        Location start = manager.getChuteDropLocation(base).clone().add(0.0, -0.22, 0.0);
-        Location end = manager.getFrontDropLocation(base);
-        manager.spawnFloorReward(base, reward, start);
-        player.getInventory().addItem(reward.clone());
-        player.sendMessage(Component.text("Greifer Erfolg: " + formatReward(reward), NamedTextColor.GOLD));
-        manager.setStatusText(base, "Gewonnen");
-
-        new BukkitRunnable() {
-            private int tick;
-
-            @Override
-            public void run() {
-                if (!manager.isMachine(base)) {
-                    manager.removeFloorReward(base);
-                    cancel();
-                    return;
-                }
-
-                tick++;
-                double progress = Math.min(1.0, tick / 12.0);
-                Location current = start.clone().add(
-                        (end.getX() - start.getX()) * progress,
-                        (end.getY() - start.getY()) * progress,
-                        (end.getZ() - start.getZ()) * progress);
-                manager.teleportFloorReward(base, current);
-
-                if (progress < 1.0) {
-                    return;
-                }
-
-                cancel();
+                manager.spawnFloorReward(base, reward, end);
                 plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                     manager.removeFloorReward(base);
+                    shufflePrizes(state);
+                    syncPrizeDisplays(base, state);
                     if (base.getWorld() != null) {
                         base.getWorld().playSound(base, Sound.ENTITY_ITEM_PICKUP, SoundCategory.BLOCKS, 0.9f, 1.05f);
                     }

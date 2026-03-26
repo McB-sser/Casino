@@ -280,8 +280,6 @@ public final class GrabberListener implements Listener {
 
     private void runGrab(Player player, GrabberManager.GrabberMachine machine, GrabberState state) {
         Location base = machine.baseLocation();
-        int slot = getCatchSlot(state.col, state.row);
-        ItemStack reward = state.prizes.get(slot);
         state.busy = true;
         manager.setStatusText(base, "Greift...");
         base.getWorld().playSound(base, Sound.BLOCK_CHAIN_HIT, SoundCategory.BLOCKS, 0.8f, 0.9f);
@@ -290,6 +288,8 @@ public final class GrabberListener implements Listener {
             private int step;
             private boolean success;
             private boolean resolved;
+            private int caughtSlot = -1;
+            private ItemStack reward;
 
             @Override
             public void run() {
@@ -321,10 +321,17 @@ public final class GrabberListener implements Listener {
 
                 if (!resolved && step == resolveStep) {
                     resolved = true;
-                    success = reward != null && reward.getType() != Material.AIR && ThreadLocalRandom.current().nextDouble() < 0.38;
+                    caughtSlot = findReachablePrizeSlot(base, state);
+                    if (caughtSlot >= 0) {
+                        reward = state.prizes.get(caughtSlot);
+                    }
+                    success = caughtSlot >= 0
+                            && reward != null
+                            && reward.getType() != Material.AIR
+                            && ThreadLocalRandom.current().nextDouble() < 0.38;
                     if (success) {
-                        manager.spawnCarriedItem(base, reward, manager.getPrizeCarryLocation(base, slot).clone().add(0.0, -1.35, 0.0));
-                        manager.setPrizeItem(base, slot, new ItemStack(Material.AIR), 0.08, 0.0f, 0.0f, 0.0f);
+                        manager.spawnCarriedItem(base, reward, manager.getPrizeCarryLocation(base, caughtSlot));
+                        manager.setPrizeItem(base, caughtSlot, new ItemStack(Material.AIR), 0.08, 0.0f, 0.0f, 0.0f);
                         base.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, base.clone().add(0.5, 1.15, 0.5), 8, 0.22, 0.12, 0.22, 0.01);
                         base.getWorld().playSound(base, Sound.ENTITY_ITEM_PICKUP, SoundCategory.BLOCKS, 0.8f, 1.2f);
                     } else {
@@ -352,6 +359,33 @@ public final class GrabberListener implements Listener {
                 returnToStart(base, state);
             }
         }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private int findReachablePrizeSlot(Location base, GrabberState state) {
+        Location clawLocation = manager.getCarryLocation(base, state.col, state.row, SUCCESS_GRAB_DEPTH);
+        double maxDistanceSquared = 0.18 * 0.18;
+        int bestSlot = -1;
+        double bestDistanceSquared = Double.MAX_VALUE;
+
+        for (int slot = 0; slot < state.prizes.size(); slot++) {
+            ItemStack prize = state.prizes.get(slot);
+            if (prize == null || prize.getType() == Material.AIR) {
+                continue;
+            }
+
+            Location prizeLocation = manager.getPrizeCarryLocation(base, slot);
+            double dx = prizeLocation.getX() - clawLocation.getX();
+            double dz = prizeLocation.getZ() - clawLocation.getZ();
+            double distanceSquared = (dx * dx) + (dz * dz);
+            if (distanceSquared > maxDistanceSquared || distanceSquared >= bestDistanceSquared) {
+                continue;
+            }
+
+            bestSlot = slot;
+            bestDistanceSquared = distanceSquared;
+        }
+
+        return bestSlot;
     }
 
     private GrabberState getOrCreateState(Location base) {
@@ -536,12 +570,6 @@ public final class GrabberListener implements Listener {
                 cancel();
             }
         }.runTaskTimer(plugin, 0L, 1L);
-    }
-
-    private int getCatchSlot(int col, int row) {
-        int catchCol = Math.max(0, Math.min(2, Math.round(col / 4.0f)));
-        int catchRow = Math.max(0, Math.min(2, Math.round(row / 4.0f)));
-        return (catchRow * 3) + catchCol;
     }
 
     private ItemStack randomPrize() {

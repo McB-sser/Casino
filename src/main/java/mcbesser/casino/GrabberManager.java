@@ -257,13 +257,14 @@ public final class GrabberManager {
             return;
         }
 
-        Location cableLocation = getCableLocation(machine, col, row, depth);
+        float cableScale = (float) Math.max(0.26, 0.38f + ((float) depth * 0.78f));
+        Location cableLocation = getCableLocation(machine, col, row, cableScale);
         Location headLocation = getHeadLocation(machine, col, row, depth);
         cable.teleport(cableLocation);
         cable.setTransformation(new Transformation(
                 new Vector3f(0.0f, 0.0f, 0.0f),
-                getFlatRotation(machine.front()),
-                new Vector3f(0.18f, (float) Math.max(0.26, 0.38f + ((float) depth * 0.78f)), 0.18f),
+                getFlatRotation(machine.front()).rotateZ((float) Math.toRadians(180)),
+                new Vector3f(0.18f, cableScale, 0.18f),
                 new Quaternionf()));
 
         head.teleport(headLocation);
@@ -283,10 +284,21 @@ public final class GrabberManager {
         if (machine == null) {
             return base.clone().add(0.5, 1.5, 0.5);
         }
+        Location head = (depth <= 0.0 && col == 0.0 && row == 0.0)
+                ? getInputLocation(machine).clone().add(0.0, -0.24, 0.0)
+                : getHeadLocation(machine, col, row, depth);
+        return head;
+    }
+
+    public Location getCarryLocation(Location base, double col, double row, double depth) {
+        GrabberMachine machine = getMachine(base);
+        if (machine == null) {
+            return base.clone().add(0.5, 1.0, 0.5);
+        }
         if (depth <= 0.0 && col == 0.0 && row == 0.0) {
             return getInputLocation(machine).clone().add(0.0, -0.24, 0.0);
         }
-        return getHeadLocation(machine, col, row, depth);
+        return getGridLocation(machine, col, row).add(0.0, 1.08 - (depth * 0.42), 0.0);
     }
 
     public Location getChuteDropLocation(Location base) {
@@ -302,9 +314,9 @@ public final class GrabberManager {
         if (machine == null) {
             return base.clone().add(0.5, 0.05, 1.05);
         }
-        Location location = getChuteLocation(machine).clone().add(0.0, 0.02, 0.0);
-        addFaceOffset(location, machine.front(), 0.10);
-        addFaceOffset(location, rotateRight(machine.front()), 0.04);
+        Location location = machine.baseLocation().clone().add(0.5, 0.02, 0.5);
+        addFaceOffset(location, machine.front(), 0.78);
+        addFaceOffset(location, rotateRight(machine.front()), 0.26);
         return location;
     }
 
@@ -726,9 +738,9 @@ public final class GrabberManager {
         BlockFace front = machine.front();
         BlockFace right = rotateRight(front);
         double[][] positions = {
-                {-0.28, 0.28}, {-0.14, 0.28}, {0.0, 0.28}, {0.14, 0.28}, {0.28, 0.28},
-                {-0.28, 0.14}, {-0.14, 0.14}, {0.0, 0.14}, {0.14, 0.14}, {0.28, 0.14},
-                {-0.28, 0.0}, {-0.14, 0.0}, {0.0, 0.0}, {0.14, 0.0}, {0.28, 0.0},
+                {-0.28, 0.28}, {-0.14, 0.28}, {0.0, 0.28}, {0.14, 0.28},
+                {-0.28, 0.14}, {-0.14, 0.14}, {0.0, 0.14}, {0.14, 0.14},
+                {-0.28, 0.0}, {-0.14, 0.0}, {0.0, 0.0}, {0.14, 0.0},
                 {-0.28, -0.14}, {-0.14, -0.14}, {0.0, -0.14}, {0.14, -0.14}, {0.28, -0.14},
                 {-0.28, -0.28}, {-0.14, -0.28}, {0.0, -0.28}, {0.14, -0.28}, {0.28, -0.28},
                 {-0.07, 0.07}, {0.07, 0.07}, {-0.07, -0.07}, {0.07, -0.07}
@@ -740,12 +752,12 @@ public final class GrabberManager {
         return location;
     }
 
-    private Location getCableLocation(GrabberMachine machine, double col, double row, double depth) {
-        return getGridLocation(machine, col, row).add(0.0, 1.30, 0.0);
+    private Location getCableLocation(GrabberMachine machine, double col, double row, float cableScale) {
+        return getGridLocation(machine, col, row).add(0.0, 1.48 - (cableScale / 2.0), 0.0);
     }
 
     private Location getHeadLocation(GrabberMachine machine, double col, double row, double depth) {
-        return getGridLocation(machine, col, row).add(0.0, 1.08 - (depth * 0.42), 0.0);
+        return getGridLocation(machine, col, row).add(0.0, 1.44, 0.0);
     }
 
     private Location getGridLocation(GrabberMachine machine, double col, double row) {
@@ -783,7 +795,7 @@ public final class GrabberManager {
         BlockFace right = rotateRight(machine.front());
         Location location = getChuteLocation(machine).clone().add(0.0, 0.72, 0.0);
         addFaceOffset(location, machine.front().getOppositeFace(), 0.14);
-        addFaceOffset(location, right, 0.0125);
+        addFaceOffset(location, right, 0.02);
         return location;
     }
 

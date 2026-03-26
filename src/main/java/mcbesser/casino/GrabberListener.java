@@ -305,19 +305,20 @@ public final class GrabberListener implements Listener {
                         : Math.max(0.0, MAX_DEPTH - ((step - half) * (MAX_DEPTH / half)));
                 manager.updateClaw(base, state.col, state.row, depth);
                 if (success) {
-                    manager.teleportCarriedItem(base, manager.getClawHeadLocation(base, state.col, state.row, depth));
+                    manager.teleportCarriedItem(base, manager.getCarryLocation(base, state.col, state.row, depth));
                 }
 
                 if (!resolved && step == (DROP_STEPS / 2)) {
                     resolved = true;
                     success = reward != null && reward.getType() != Material.AIR && ThreadLocalRandom.current().nextDouble() < 0.38;
                     if (success) {
-                        Location carryStart = manager.getPrizeCarryLocation(base, slot).clone().add(0.0, -0.08, 0.0);
-                        manager.spawnCarriedItem(base, reward, carryStart);
+                        manager.spawnCarriedItem(base, reward, manager.getCarryLocation(base, state.col, state.row, depth).clone().add(0.0, -0.12, 0.0));
                         manager.setPrizeItem(base, slot, new ItemStack(Material.AIR), 0.08, 0.0f, 0.0f, 0.0f);
                         base.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, base.clone().add(0.5, 1.15, 0.5), 8, 0.22, 0.12, 0.22, 0.01);
                         base.getWorld().playSound(base, Sound.ENTITY_ITEM_PICKUP, SoundCategory.BLOCKS, 0.8f, 1.2f);
                     } else {
+                        player.playSound(base, Sound.BLOCK_NOTE_BLOCK_BASS, SoundCategory.PLAYERS, 0.8f, 0.7f);
+                        player.playSound(base, Sound.BLOCK_CHAIN_BREAK, SoundCategory.PLAYERS, 0.7f, 0.8f);
                         base.getWorld().playSound(base, Sound.BLOCK_CHAIN_BREAK, SoundCategory.BLOCKS, 0.7f, 0.8f);
                     }
                 }
@@ -426,11 +427,11 @@ public final class GrabberListener implements Listener {
                 }
 
                 tick++;
-                double progress = Math.min(1.0, tick / 10.0);
+                double progress = Math.min(1.0, tick / 28.0);
                 double currentCol = oldCol + ((0 - oldCol) * progress);
                 double currentRow = oldRow + ((0 - oldRow) * progress);
                 manager.updateClaw(base, currentCol, currentRow, 0.0);
-                manager.teleportCarriedItem(base, manager.getClawHeadLocation(base, currentCol, currentRow, 0.0));
+                manager.teleportCarriedItem(base, manager.getCarryLocation(base, currentCol, currentRow, 0.0));
 
                 if (progress < 1.0) {
                     return;
@@ -443,7 +444,7 @@ public final class GrabberListener implements Listener {
     }
 
     private void dropRewardAtFront(Player player, Location base, ItemStack reward, GrabberState state) {
-        Location start = manager.getClawHeadLocation(base, 0.0, 0.0, 0.0);
+        Location start = manager.getCarryLocation(base, 0.0, 0.0, 0.0);
         Location end = manager.getFrontDropLocation(base);
         player.getInventory().addItem(reward.clone());
         player.sendMessage(Component.text("Greifer Erfolg: " + formatReward(reward), NamedTextColor.GOLD));
@@ -462,7 +463,7 @@ public final class GrabberListener implements Listener {
                 }
 
                 tick++;
-                double progress = Math.min(1.0, tick / 32.0);
+                double progress = Math.min(1.0, tick / 10.0);
                 Location current = start.clone().add(
                         (end.getX() - start.getX()) * progress,
                         (end.getY() - start.getY()) * progress,
@@ -476,13 +477,13 @@ public final class GrabberListener implements Listener {
                 cancel();
                 manager.removeCarriedItem(base);
                 manager.spawnFloorReward(base, reward, end);
+                player.playSound(base, Sound.ENTITY_ITEM_PICKUP, SoundCategory.PLAYERS, 0.9f, 1.05f);
+                player.playSound(base, Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.8f, 1.15f);
+                player.playSound(base, Sound.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.7f, 1.0f);
                 plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                     manager.removeFloorReward(base);
                     shufflePrizes(state);
                     syncPrizeDisplays(base, state);
-                    if (base.getWorld() != null) {
-                        base.getWorld().playSound(base, Sound.ENTITY_ITEM_PICKUP, SoundCategory.BLOCKS, 0.9f, 1.05f);
-                    }
                     state.busy = false;
                     returnToStart(base, state);
                 }, 60L);

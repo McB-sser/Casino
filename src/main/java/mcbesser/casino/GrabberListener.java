@@ -37,6 +37,7 @@ public final class GrabberListener implements Listener {
 
     private static final int ENTRY_COST = 1;
     private static final double MAX_DEPTH = 0.98;
+    private static final double SUCCESS_GRAB_DEPTH = 0.42;
     private static final int MOVE_STEPS = 9;
     private static final int DROP_STEPS = 36;
     private static final List<ItemStack> PRIZE_POOL = List.of(
@@ -299,20 +300,30 @@ public final class GrabberListener implements Listener {
                 }
 
                 step++;
+                int resolveStep = DROP_STEPS / 3;
                 double half = DROP_STEPS / 2.0;
-                double depth = step <= half
-                        ? (MAX_DEPTH / half) * step
-                        : Math.max(0.0, MAX_DEPTH - ((step - half) * (MAX_DEPTH / half)));
+                double depth;
+                if (step <= resolveStep) {
+                    depth = (SUCCESS_GRAB_DEPTH / resolveStep) * step;
+                } else if (resolved && success) {
+                    double retractProgress = Math.min(1.0, (step - resolveStep) / (double) (DROP_STEPS - resolveStep));
+                    depth = Math.max(0.0, SUCCESS_GRAB_DEPTH * (1.0 - retractProgress));
+                } else if (step <= half) {
+                    double deeperProgress = (step - resolveStep) / (half - resolveStep);
+                    depth = SUCCESS_GRAB_DEPTH + ((MAX_DEPTH - SUCCESS_GRAB_DEPTH) * deeperProgress);
+                } else {
+                    depth = Math.max(0.0, MAX_DEPTH - ((step - half) * (MAX_DEPTH / half)));
+                }
                 manager.updateClaw(base, state.col, state.row, depth);
                 if (success) {
                     manager.teleportCarriedItem(base, manager.getCarryLocation(base, state.col, state.row, depth));
                 }
 
-                if (!resolved && step == (DROP_STEPS / 2)) {
+                if (!resolved && step == resolveStep) {
                     resolved = true;
                     success = reward != null && reward.getType() != Material.AIR && ThreadLocalRandom.current().nextDouble() < 0.38;
                     if (success) {
-                        manager.spawnCarriedItem(base, reward, manager.getCarryLocation(base, state.col, state.row, depth).clone().add(0.0, -0.12, 0.0));
+                        manager.spawnCarriedItem(base, reward, manager.getPrizeCarryLocation(base, slot).clone().add(0.0, -1.35, 0.0));
                         manager.setPrizeItem(base, slot, new ItemStack(Material.AIR), 0.08, 0.0f, 0.0f, 0.0f);
                         base.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, base.clone().add(0.5, 1.15, 0.5), 8, 0.22, 0.12, 0.22, 0.01);
                         base.getWorld().playSound(base, Sound.ENTITY_ITEM_PICKUP, SoundCategory.BLOCKS, 0.8f, 1.2f);

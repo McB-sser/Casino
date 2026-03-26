@@ -32,7 +32,7 @@ import org.joml.Vector3f;
 public final class GrabberManager {
 
     private static final String CONFIG_ROOT = "grabber-machines";
-    public static final int PRIZE_DISPLAY_COUNT = 29;
+    public static final int PRIZE_DISPLAY_COUNT = 28;
 
     private final JavaPlugin plugin;
     private final NamespacedKey machineKey;
@@ -565,7 +565,7 @@ public final class GrabberManager {
         display.setTeleportDuration(1);
         display.setTransformation(new Transformation(
                 new Vector3f(),
-                new Quaternionf(),
+                new Quaternionf().rotateX((float) Math.toRadians(15)),
                 new Vector3f(0.28f, 0.28f, 0.28f),
                 new Quaternionf()));
         display.getPersistentDataContainer().set(machineKey, PersistentDataType.STRING, serializeKey(machine.baseLocation()));
@@ -739,14 +739,14 @@ public final class GrabberManager {
         BlockFace right = rotateRight(front);
         double[][] positions = {
                 {-0.28, 0.28}, {-0.14, 0.28}, {0.0, 0.28}, {0.14, 0.28},
-                {-0.28, 0.14}, {-0.14, 0.14}, {0.0, 0.14}, {0.14, 0.14},
-                {-0.28, 0.0}, {-0.14, 0.0}, {0.0, 0.0}, {0.14, 0.0},
+                {-0.28, 0.14}, {-0.14, 0.14}, {0.0, 0.14}, {0.14, 0.14}, {0.28, 0.14},
+                {-0.28, 0.0}, {-0.14, 0.0}, {0.0, 0.0}, {0.14, 0.0}, {0.28, 0.0},
                 {-0.28, -0.14}, {-0.14, -0.14}, {0.0, -0.14}, {0.14, -0.14}, {0.28, -0.14},
                 {-0.28, -0.28}, {-0.14, -0.28}, {0.0, -0.28}, {0.14, -0.28}, {0.28, -0.28},
                 {-0.07, 0.07}, {0.07, 0.07}, {-0.07, -0.07}, {0.07, -0.07}
         };
         int safeSlot = Math.max(0, Math.min(positions.length - 1, slot));
-        Location location = machine.baseLocation().clone().add(0.5, 1.04, 0.5);
+        Location location = machine.baseLocation().clone().add(0.5, 1.10, 0.5);
         addFaceOffset(location, right, positions[safeSlot][0]);
         addFaceOffset(location, front, positions[safeSlot][1] + depthOffset);
         return location;

@@ -58,6 +58,7 @@ public final class AttractionStatsManager {
                     entry.bestStreak = playerSection.getInt("best-streak");
                     entry.totalEmeraldsWon = playerSection.getInt("total-emeralds-won");
                     entry.bestPayout = playerSection.getInt("best-payout");
+                    entry.lastPayout = playerSection.getInt("last-payout");
                     typeStats.put(playerId, entry);
                 } catch (IllegalArgumentException ignored) {
                 }
@@ -81,6 +82,7 @@ public final class AttractionStatsManager {
                 typeSection.set(path + ".best-streak", value.bestStreak);
                 typeSection.set(path + ".total-emeralds-won", value.totalEmeraldsWon);
                 typeSection.set(path + ".best-payout", value.bestPayout);
+                typeSection.set(path + ".last-payout", value.lastPayout);
             }
         }
 
@@ -99,6 +101,7 @@ public final class AttractionStatsManager {
         if (emeraldPayout > 0) {
             stats.totalEmeraldsWon += emeraldPayout;
             stats.bestPayout = Math.max(stats.bestPayout, emeraldPayout);
+            stats.lastPayout = emeraldPayout;
         }
     }
 
@@ -116,6 +119,7 @@ public final class AttractionStatsManager {
         if (emeraldPayout > 0) {
             stats.totalEmeraldsWon += emeraldPayout;
             stats.bestPayout = Math.max(stats.bestPayout, emeraldPayout);
+            stats.lastPayout = emeraldPayout;
         }
     }
 
@@ -126,6 +130,7 @@ public final class AttractionStatsManager {
         PlayerAttractionStats stats = getStats(type, playerId);
         stats.totalEmeraldsWon += emeraldPayout;
         stats.bestPayout = Math.max(stats.bestPayout, emeraldPayout);
+        stats.lastPayout = emeraldPayout;
     }
 
     public PlayerStatsView getView(AttractionType type, UUID playerId) {
@@ -140,6 +145,7 @@ public final class AttractionStatsManager {
                 stats.bestStreak,
                 stats.totalEmeraldsWon,
                 stats.bestPayout,
+                stats.lastPayout,
                 winRate);
     }
 
@@ -187,6 +193,7 @@ public final class AttractionStatsManager {
             int bestStreak,
             int totalEmeraldsWon,
             int bestPayout,
+            int lastPayout,
             int winRate) {
     }
 
@@ -201,5 +208,6 @@ public final class AttractionStatsManager {
         private int bestStreak;
         private int totalEmeraldsWon;
         private int bestPayout;
+        private int lastPayout;
     }
 }

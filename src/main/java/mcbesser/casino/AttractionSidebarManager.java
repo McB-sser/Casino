@@ -236,7 +236,7 @@ public final class AttractionSidebarManager implements Listener {
 
         AttractionStatsManager.RankingEntry entry = ranking.get(index);
         return ChatColor.WHITE + "" + (index + 1) + ". " + entry.playerName()
-                + ChatColor.GRAY + " - " + entry.value() + suffix;
+                + ChatColor.GRAY + ": " + entry.value() + suffix;
     }
 
     private String makeUnique(String line, int score) {

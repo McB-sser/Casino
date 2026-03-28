@@ -303,7 +303,7 @@ public final class MemoryListener implements Listener {
         MemoryState state = states.get(serializeKey(center));
         if (state == null) {
             manager.resetAllSlots(center);
-            manager.setStatusText(center, "Start: 1 Emerald");
+            manager.setStatusText(center, "");
             return;
         }
 
@@ -450,7 +450,7 @@ public final class MemoryListener implements Listener {
 
     private String buildStatusText(MemoryState state) {
         if (!state.started()) {
-            return "▶ 1E";
+            return "";
         }
         return "✖" + state.attemptsLeft() + " ♦" + state.rewardLeft() + " ⏱" + state.secondsUntilPenalty();
     }
@@ -624,3 +624,4 @@ public final class MemoryListener implements Listener {
         }
     }
 }
+

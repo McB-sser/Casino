@@ -296,7 +296,7 @@ public final class MemoryManager {
         display.setInvulnerable(true);
         display.setInterpolationDelay(0);
         display.setInterpolationDuration(1);
-        display.text(net.kyori.adventure.text.Component.text("Versuche: 10"));
+        display.text(net.kyori.adventure.text.Component.text(""));
         display.setShadowed(true);
         display.getPersistentDataContainer().set(boardKey, PersistentDataType.STRING, serializeKey(center));
         display.getPersistentDataContainer().set(displayTypeKey, PersistentDataType.STRING, "status");
@@ -503,3 +503,4 @@ public final class MemoryManager {
     public record MemoryBoard(Location centerLocation) {
     }
 }
+

@@ -45,14 +45,16 @@ public final class CoinFlipListener implements Listener {
     private static final double COIN_BOTTOM_Y = 1.041;
     private final JavaPlugin plugin;
     private final CoinFlipManager manager;
+    private final AttractionStatsManager statsManager;
     private final Map<String, StreakState> streaks = new HashMap<>();
     private final Map<String, Boolean> activeFlips = new HashMap<>();
     private final Map<String, BukkitRunnable> countdowns = new HashMap<>();
     private final Map<String, BukkitRunnable> pendingResets = new HashMap<>();
 
-    public CoinFlipListener(JavaPlugin plugin, CoinFlipManager manager) {
+    public CoinFlipListener(JavaPlugin plugin, CoinFlipManager manager, AttractionStatsManager statsManager) {
         this.plugin = plugin;
         this.manager = manager;
+        this.statsManager = statsManager;
     }
 
     @EventHandler
@@ -146,6 +148,7 @@ public final class CoinFlipListener implements Listener {
         cancelCountdown(key);
         cancelPendingReset(key);
         hand.subtract(cost);
+        statsManager.recordPlay(AttractionType.COIN_FLIP, player.getUniqueId());
 
         ItemDisplay snow = manager.getItemDisplay(location, "snowball_static");
         ItemDisplay fire = manager.getItemDisplay(location, "fire_static");
@@ -247,6 +250,7 @@ public final class CoinFlipListener implements Listener {
             return;
         }
 
+        statsManager.recordLoss(AttractionType.COIN_FLIP, player.getUniqueId());
         streaks.remove(key);
         manager.setMultiplierDisplay(location, null);
         location.getWorld().playSound(location, Sound.BLOCK_FIRE_EXTINGUISH, SoundCategory.BLOCKS, 0.8f, 0.9f);
@@ -343,6 +347,7 @@ public final class CoinFlipListener implements Listener {
         if (state != null) {
             int multiplier = state.streak() + 1;
             owner = plugin.getServer().getPlayer(state.playerId());
+            statsManager.recordCompletedSeries(AttractionType.COIN_FLIP, state.playerId(), state.streak(), state.pendingPayout());
             if (owner != null && owner.isOnline()) {
                 owner.getInventory().addItem(new ItemStack(Material.EMERALD, state.pendingPayout()));
                 owner.sendMessage(Component.text("Cashout x" + multiplier + " | +" + state.pendingPayout() + " Emerald", NamedTextColor.GOLD));

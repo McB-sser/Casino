@@ -9,11 +9,15 @@ public final class CasinoPlugin extends JavaPlugin {
     private CoinFlipManager coinFlipManager;
     private MemoryManager memoryManager;
     private GrabberManager grabberManager;
+    private AttractionStatsManager attractionStatsManager;
+    private AttractionSidebarManager attractionSidebarManager;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
 
+        attractionStatsManager = new AttractionStatsManager(this);
+        attractionStatsManager.load();
         slotMachineManager = new SlotMachineManager(this);
         slotMachineManager.load();
         slotMachineManager.spawnAllHandles();
@@ -30,15 +34,29 @@ public final class CasinoPlugin extends JavaPlugin {
         grabberManager.load();
         grabberManager.spawnAllDisplays();
 
-        getServer().getPluginManager().registerEvents(new SlotMachineListener(this, slotMachineManager), this);
-        getServer().getPluginManager().registerEvents(new HorseRaceListener(this, horseRaceManager), this);
-        getServer().getPluginManager().registerEvents(new CoinFlipListener(this, coinFlipManager), this);
-        getServer().getPluginManager().registerEvents(new MemoryListener(this, memoryManager), this);
-        getServer().getPluginManager().registerEvents(new GrabberListener(this, grabberManager), this);
+        getServer().getPluginManager().registerEvents(new SlotMachineListener(this, slotMachineManager, attractionStatsManager), this);
+        getServer().getPluginManager().registerEvents(new HorseRaceListener(this, horseRaceManager, attractionStatsManager), this);
+        getServer().getPluginManager().registerEvents(new CoinFlipListener(this, coinFlipManager, attractionStatsManager), this);
+        getServer().getPluginManager().registerEvents(new MemoryListener(this, memoryManager, attractionStatsManager), this);
+        getServer().getPluginManager().registerEvents(new GrabberListener(this, grabberManager, attractionStatsManager), this);
+
+        attractionSidebarManager = new AttractionSidebarManager(
+                this,
+                attractionStatsManager,
+                slotMachineManager,
+                horseRaceManager,
+                coinFlipManager,
+                memoryManager,
+                grabberManager);
+        getServer().getPluginManager().registerEvents(attractionSidebarManager, this);
+        attractionSidebarManager.start();
     }
 
     @Override
     public void onDisable() {
+        if (attractionSidebarManager != null) {
+            attractionSidebarManager.shutdown();
+        }
         if (slotMachineManager != null) {
             slotMachineManager.shutdown();
         }
@@ -53,6 +71,9 @@ public final class CasinoPlugin extends JavaPlugin {
         }
         if (grabberManager != null) {
             grabberManager.shutdown();
+        }
+        if (attractionStatsManager != null) {
+            attractionStatsManager.save();
         }
     }
 }

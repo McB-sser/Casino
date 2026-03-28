@@ -47,10 +47,12 @@ public final class SlotMachineListener implements Listener {
 
     private final JavaPlugin plugin;
     private final SlotMachineManager manager;
+    private final AttractionStatsManager statsManager;
 
-    public SlotMachineListener(JavaPlugin plugin, SlotMachineManager manager) {
+    public SlotMachineListener(JavaPlugin plugin, SlotMachineManager manager, AttractionStatsManager statsManager) {
         this.plugin = plugin;
         this.manager = manager;
+        this.statsManager = statsManager;
     }
 
     @EventHandler
@@ -149,6 +151,7 @@ public final class SlotMachineListener implements Listener {
         }
 
         handItem.subtract(SPIN_COST);
+        statsManager.recordPlay(AttractionType.SLOT_MACHINE, player.getUniqueId());
 
         ItemDisplay handle = manager.findHandle(machineLocation);
 
@@ -246,6 +249,7 @@ public final class SlotMachineListener implements Listener {
     private void finishSpin(Player player, Location machineCenter, Material[] finalSymbols) {
         int payout = getPayout(finalSymbols);
         if (payout > 0) {
+            statsManager.recordWin(AttractionType.SLOT_MACHINE, player.getUniqueId(), payout);
             player.getInventory().addItem(new ItemStack(Material.EMERALD, payout));
             player.sendMessage(Component.text("Gewinn: " + payout + " Emerald!", NamedTextColor.GOLD));
             playWinEmeraldBurst(machineCenter);
@@ -254,6 +258,7 @@ public final class SlotMachineListener implements Listener {
             return;
         }
 
+        statsManager.recordLoss(AttractionType.SLOT_MACHINE, player.getUniqueId());
         player.playSound(machineCenter, Sound.BLOCK_NOTE_BLOCK_BELL, SoundCategory.PLAYERS, 0.7f, 0.9f);
     }
 

@@ -55,11 +55,13 @@ public final class GrabberListener implements Listener {
 
     private final JavaPlugin plugin;
     private final GrabberManager manager;
+    private final AttractionStatsManager statsManager;
     private final java.util.Map<String, GrabberState> states = new java.util.HashMap<>();
 
-    public GrabberListener(JavaPlugin plugin, GrabberManager manager) {
+    public GrabberListener(JavaPlugin plugin, GrabberManager manager, AttractionStatsManager statsManager) {
         this.plugin = plugin;
         this.manager = manager;
+        this.statsManager = statsManager;
     }
 
     @EventHandler
@@ -180,6 +182,7 @@ public final class GrabberListener implements Listener {
 
         if (state.ownerId == null) {
             hand.subtract(ENTRY_COST);
+            statsManager.recordPlay(AttractionType.GRABBER, player.getUniqueId());
             state.ownerId = player.getUniqueId();
             manager.setStatusText(machine.baseLocation(), "Pfeile steuern, Haken gratis");
             clicked.getWorld().playSound(clicked.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, SoundCategory.BLOCKS, 0.75f, 1.2f);
@@ -349,10 +352,12 @@ public final class GrabberListener implements Listener {
                 state.ownerId = null;
 
                 if (success) {
+                    statsManager.recordWin(AttractionType.GRABBER, player.getUniqueId(), 0);
                     animateWinToChute(player, base, reward, state);
                     return;
                 }
 
+                statsManager.recordLoss(AttractionType.GRABBER, player.getUniqueId());
                 manager.removeCarriedItem(base);
                 state.busy = false;
                 manager.setStatusText(base, "Daneben");

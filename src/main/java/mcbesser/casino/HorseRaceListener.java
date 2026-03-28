@@ -39,10 +39,12 @@ public final class HorseRaceListener implements Listener {
 
     private final JavaPlugin plugin;
     private final HorseRaceManager manager;
+    private final AttractionStatsManager statsManager;
 
-    public HorseRaceListener(JavaPlugin plugin, HorseRaceManager manager) {
+    public HorseRaceListener(JavaPlugin plugin, HorseRaceManager manager, AttractionStatsManager statsManager) {
         this.plugin = plugin;
         this.manager = manager;
+        this.statsManager = statsManager;
     }
 
     @EventHandler
@@ -117,6 +119,7 @@ public final class HorseRaceListener implements Listener {
         }
 
         hand.subtract(ENTRY_COST);
+        statsManager.recordPlay(AttractionType.HORSE_RACE, player.getUniqueId());
         int chosenRacer = ThreadLocalRandom.current().nextInt(HorseRaceManager.RACER_ITEMS.size());
         player.sendMessage(Component.text("Dein Pferd: " + getRacerName(chosenRacer), NamedTextColor.AQUA));
 
@@ -177,11 +180,13 @@ public final class HorseRaceListener implements Listener {
                 if (raceWinner != -1) {
                     winner = raceWinner;
                     if (winner == chosenRacer) {
+                        statsManager.recordWin(AttractionType.HORSE_RACE, player.getUniqueId(), WIN_PAYOUT);
                         player.getInventory().addItem(new ItemStack(Material.EMERALD, WIN_PAYOUT));
                         player.sendMessage(Component.text("Dein Pferd gewinnt! +" + WIN_PAYOUT + " Emerald", NamedTextColor.GOLD));
                         playWinBurst(location);
                         playWinnerSound(location);
                     } else {
+                        statsManager.recordLoss(AttractionType.HORSE_RACE, player.getUniqueId());
                         player.sendMessage(Component.text("Gewonnen hat " + getRacerName(winner) + ".", NamedTextColor.GRAY));
                         playLoserFinishSound(location);
                     }

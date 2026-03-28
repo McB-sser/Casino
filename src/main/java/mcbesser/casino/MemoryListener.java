@@ -51,15 +51,17 @@ public final class MemoryListener implements Listener {
 
     private final JavaPlugin plugin;
     private final MemoryManager manager;
+    private final AttractionStatsManager statsManager;
     private final Map<String, MemoryState> states = new HashMap<>();
     private final Map<String, BukkitRunnable> pendingMismatch = new HashMap<>();
     private final Map<String, BukkitRunnable> pendingReset = new HashMap<>();
     private final Map<String, BukkitRunnable> countdowns = new HashMap<>();
     private final Map<String, BukkitRunnable> statusRestores = new HashMap<>();
 
-    public MemoryListener(JavaPlugin plugin, MemoryManager manager) {
+    public MemoryListener(JavaPlugin plugin, MemoryManager manager, AttractionStatsManager statsManager) {
         this.plugin = plugin;
         this.manager = manager;
+        this.statsManager = statsManager;
     }
 
     @EventHandler
@@ -122,6 +124,7 @@ public final class MemoryListener implements Listener {
         if (!state.started()) {
             if (hand.getType() == Material.EMERALD && hand.getAmount() >= START_COST) {
                 hand.subtract(START_COST);
+                statsManager.recordPlay(AttractionType.MEMORY, player.getUniqueId());
                 state.started(true);
                 state.ownerId(player.getUniqueId());
                 manager.setStatusText(board.centerLocation(), buildStatusText(state));
@@ -335,6 +338,9 @@ public final class MemoryListener implements Listener {
         cancelCountdown(serializeKey(center));
         if (won && state.rewardLeft() > 0) {
             Player owner = state.ownerId() == null ? null : plugin.getServer().getPlayer(state.ownerId());
+            if (state.ownerId() != null) {
+                statsManager.recordWin(AttractionType.MEMORY, state.ownerId(), state.rewardLeft());
+            }
             if (owner != null && owner.isOnline()) {
                 owner.getInventory().addItem(new ItemStack(Material.EMERALD, state.rewardLeft()));
                 owner.sendMessage(Component.text("Memory geloest: +" + state.rewardLeft() + " Emerald", NamedTextColor.GOLD));
@@ -344,6 +350,9 @@ public final class MemoryListener implements Listener {
             center.getWorld().playSound(center, Sound.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.BLOCKS, 0.85f, 1.0f);
             manager.setStatusText(center, "Gewinn: " + state.rewardLeft());
         } else {
+            if (state.ownerId() != null) {
+                statsManager.recordLoss(AttractionType.MEMORY, state.ownerId());
+            }
             center.getWorld().playSound(center, Sound.BLOCK_FIRE_EXTINGUISH, SoundCategory.BLOCKS, 0.85f, 0.8f);
             manager.setStatusText(center, "Verloren");
         }

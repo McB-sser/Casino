@@ -158,9 +158,9 @@ public final class AttractionSidebarManager implements Listener {
                     ChatColor.YELLOW + "Bilanz: " + ChatColor.WHITE + (stats.totalEmeraldsWon() - stats.plays()) + "E",
                     ChatColor.GRAY + " ",
                     ChatColor.GOLD + "Deine Werte",
-                    ChatColor.WHITE + "Spiele: " + ChatColor.GRAY + stats.plays(),
-                    ChatColor.WHITE + "Siege: " + ChatColor.GRAY + stats.wins(),
-                    ChatColor.WHITE + "Bestspin: " + ChatColor.GRAY + stats.bestPayout() + "E",
+                    label("Spiele") + value(stats.plays()),
+                    label("Siege") + value(stats.wins()),
+                    label("Bestspin") + value(stats.bestPayout() + "E"),
                     ChatColor.GRAY + " ",
                     ChatColor.GOLD + type.rankingLabel(),
                     rankingLine(ranking, 0, "E"),
@@ -173,9 +173,9 @@ public final class AttractionSidebarManager implements Listener {
                     ChatColor.YELLOW + "Serie: " + ChatColor.WHITE + stats.currentStreak(),
                     ChatColor.GRAY + " ",
                     ChatColor.GOLD + "Deine Werte",
-                    ChatColor.WHITE + "Rennen: " + ChatColor.GRAY + stats.plays(),
-                    ChatColor.WHITE + "Siege: " + ChatColor.GRAY + stats.wins(),
-                    ChatColor.WHITE + "Beste Serie: " + ChatColor.GRAY + stats.bestStreak(),
+                    label("Rennen") + value(stats.plays()),
+                    label("Siege") + value(stats.wins()),
+                    label("Beste Serie") + value(stats.bestStreak()),
                     ChatColor.GRAY + " ",
                     ChatColor.GOLD + type.rankingLabel(),
                     rankingLine(ranking, 0, ""),
@@ -188,9 +188,9 @@ public final class AttractionSidebarManager implements Listener {
                     ChatColor.YELLOW + "Beste Serie: " + ChatColor.WHITE + stats.bestStreak(),
                     ChatColor.GRAY + " ",
                     ChatColor.GOLD + "Deine Werte",
-                    ChatColor.WHITE + "Flips: " + ChatColor.GRAY + stats.plays(),
-                    ChatColor.WHITE + "Siege: " + ChatColor.GRAY + stats.wins(),
-                    ChatColor.WHITE + "Bester Cashout: " + ChatColor.GRAY + stats.bestPayout() + "E",
+                    label("Flips") + value(stats.plays()),
+                    label("Siege") + value(stats.wins()),
+                    label("Bester Cashout") + value(stats.bestPayout() + "E"),
                     ChatColor.GRAY + " ",
                     ChatColor.GOLD + type.rankingLabel(),
                     rankingLine(ranking, 0, ""),
@@ -203,9 +203,9 @@ public final class AttractionSidebarManager implements Listener {
                     ChatColor.YELLOW + "Abzug: " + ChatColor.WHITE + "-1E / 10s",
                     ChatColor.GRAY + " ",
                     ChatColor.GOLD + "Deine Werte",
-                    ChatColor.WHITE + "Partien: " + ChatColor.GRAY + stats.plays(),
-                    ChatColor.WHITE + "Geloest: " + ChatColor.GRAY + stats.wins(),
-                    ChatColor.WHITE + "Bester Gewinn: " + ChatColor.GRAY + stats.bestPayout() + "E",
+                    label("Partien") + value(stats.plays()),
+                    label("Geloest") + value(stats.wins()),
+                    label("Bester Gewinn") + value(stats.bestPayout() + "E"),
                     ChatColor.GRAY + " ",
                     ChatColor.GOLD + type.rankingLabel(),
                     rankingLine(ranking, 0, ""),
@@ -218,9 +218,9 @@ public final class AttractionSidebarManager implements Listener {
                     ChatColor.YELLOW + "Treffer: " + ChatColor.WHITE + stats.wins(),
                     ChatColor.GRAY + " ",
                     ChatColor.GOLD + "Deine Werte",
-                    ChatColor.WHITE + "Runden: " + ChatColor.GRAY + stats.plays(),
-                    ChatColor.WHITE + "Funde: " + ChatColor.GRAY + stats.wins(),
-                    ChatColor.WHITE + "Serie: " + ChatColor.GRAY + stats.bestStreak(),
+                    label("Runden") + value(stats.plays()),
+                    label("Funde") + value(stats.wins()),
+                    label("Serie") + value(stats.bestStreak()),
                     ChatColor.GRAY + " ",
                     ChatColor.GOLD + type.rankingLabel(),
                     rankingLine(ranking, 0, ""),
@@ -235,8 +235,16 @@ public final class AttractionSidebarManager implements Listener {
         }
 
         AttractionStatsManager.RankingEntry entry = ranking.get(index);
-        return ChatColor.WHITE + "" + (index + 1) + ". " + entry.playerName()
-                + ChatColor.GRAY + ": " + entry.value() + suffix;
+        return ChatColor.WHITE + "" + (index + 1) + ". " + ChatColor.GREEN + entry.playerName()
+                + ChatColor.WHITE + ": " + entry.value() + suffix;
+    }
+
+    private String label(String text) {
+        return ChatColor.GREEN + text + ChatColor.WHITE + ": ";
+    }
+
+    private String value(Object value) {
+        return ChatColor.WHITE + String.valueOf(value);
     }
 
     private String makeUnique(String line, int score) {

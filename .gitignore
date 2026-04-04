@@ -1,6 +1,7 @@
 # Build output
 build/
 target/
+/.cp.txt
 out/
 bin/
 *.class

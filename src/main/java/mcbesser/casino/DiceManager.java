@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -99,8 +100,9 @@ public final class DiceManager {
                 boolean uniqueInMachine = dieSection.getBoolean("unique", false);
                 boolean timeFormat = dieSection.getBoolean("time-format", false);
                 int step = Math.max(1, dieSection.getInt("step", 1));
+                String colorCode = dieSection.getString("color");
                 int face = alignToStep(dieSection.getInt("face", minValue), minValue, maxValue, step);
-                dice.add(new DieEntry(dieLocation, buttonMaterial, minValue, maxValue, face, uniqueInMachine, timeFormat, step));
+                dice.add(new DieEntry(dieLocation, buttonMaterial, minValue, maxValue, face, uniqueInMachine, timeFormat, step, colorCode));
             }
 
             DiceMachine machine = new DiceMachine(trigger, dice);
@@ -135,6 +137,7 @@ public final class DiceManager {
                 diceSection.set(diePath + ".unique", die.uniqueInMachine());
                 diceSection.set(diePath + ".time-format", die.timeFormat());
                 diceSection.set(diePath + ".step", die.step());
+                diceSection.set(diePath + ".color", die.colorCode());
                 diceSection.set(diePath + ".face", die.face());
             }
         }
@@ -196,6 +199,20 @@ public final class DiceManager {
     }
 
     public void updateFaces(DiceMachine machine, List<Integer> faces) {
+        DiceMachine replacement = createUpdatedMachine(machine, faces);
+        String key = serializeKey(machine.triggerLocation());
+        machines.put(key, replacement);
+        deindex(machine);
+        index(replacement);
+        refreshDisplays(replacement);
+        save();
+    }
+
+    public void previewFaces(DiceMachine machine, List<Integer> faces) {
+        refreshDisplays(createUpdatedMachine(machine, faces));
+    }
+
+    private DiceMachine createUpdatedMachine(DiceMachine machine, List<Integer> faces) {
         List<DieEntry> updated = new ArrayList<>();
         for (int i = 0; i < machine.dice().size(); i++) {
             DieEntry die = machine.dice().get(i);
@@ -210,17 +227,11 @@ public final class DiceManager {
                 face,
                 die.uniqueInMachine(),
                 die.timeFormat(),
-                die.step()
+                die.step(),
+                die.colorCode()
             ));
         }
-
-        DiceMachine replacement = new DiceMachine(machine.triggerLocation(), updated);
-        String key = serializeKey(machine.triggerLocation());
-        machines.put(key, replacement);
-        deindex(machine);
-        index(replacement);
-        refreshDisplays(replacement);
-        save();
+        return new DiceMachine(machine.triggerLocation(), updated);
     }
 
     public void refreshDisplays(DiceMachine machine) {
@@ -230,7 +241,7 @@ public final class DiceManager {
                 spawnDisplay(machine, die);
                 continue;
             }
-            display.text(createFaceComponent(die.face(), die.timeFormat()));
+            display.text(createFaceComponent(die.location(), die.face(), die.timeFormat(), die.colorCode()));
         }
     }
 
@@ -302,7 +313,7 @@ public final class DiceManager {
         display.setSeeThrough(false);
         display.setInterpolationDelay(0);
         display.setInterpolationDuration(1);
-        display.text(createFaceComponent(die.face(), die.timeFormat()));
+        display.text(createFaceComponent(die.location(), die.face(), die.timeFormat(), die.colorCode()));
         display.setTransformation(new Transformation(
             new Vector3f(0.0f, 0.0f, 0.0f),
             new Quaternionf(),
@@ -336,8 +347,8 @@ public final class DiceManager {
         return blockLocation.clone().add(0.5, 1.35, 0.5);
     }
 
-    private Component createFaceComponent(int face, boolean timeFormat) {
-        return Component.text(formatFace(face, timeFormat), NamedTextColor.GOLD);
+    private Component createFaceComponent(Location location, int face, boolean timeFormat, @Nullable String colorCode) {
+        return Component.text(formatFace(face, timeFormat), resolveDisplayColor(location, colorCode));
     }
 
     private String formatFace(int face, boolean timeFormat) {
@@ -348,6 +359,70 @@ public final class DiceManager {
         int hours = Math.floorDiv(face, 60);
         int minutes = Math.floorMod(face, 60);
         return String.format("%02d:%02d", hours, minutes);
+    }
+
+    private TextColor resolveDisplayColor(Location location, @Nullable String colorCode) {
+        TextColor customColor = parseColorCode(colorCode);
+        if (customColor != null) {
+            return customColor;
+        }
+
+        Material material = location.getBlock().getRelative(org.bukkit.block.BlockFace.DOWN).getType();
+        return switch (material) {
+            case WHITE_WOOL -> TextColor.color(0xF9FFFE);
+            case ORANGE_WOOL -> TextColor.color(0xF9801D);
+            case MAGENTA_WOOL -> TextColor.color(0xC74EBD);
+            case LIGHT_BLUE_WOOL -> TextColor.color(0x3AB3DA);
+            case YELLOW_WOOL -> TextColor.color(0xFED83D);
+            case LIME_WOOL -> TextColor.color(0x80C71F);
+            case PINK_WOOL -> TextColor.color(0xF38BAA);
+            case GRAY_WOOL -> TextColor.color(0x474F52);
+            case LIGHT_GRAY_WOOL -> TextColor.color(0x9D9D97);
+            case CYAN_WOOL -> TextColor.color(0x169C9C);
+            case PURPLE_WOOL -> TextColor.color(0x8932B8);
+            case BLUE_WOOL -> TextColor.color(0x3C44AA);
+            case BROWN_WOOL -> TextColor.color(0x835432);
+            case GREEN_WOOL -> TextColor.color(0x5E7C16);
+            case RED_WOOL -> TextColor.color(0xB02E26);
+            case BLACK_WOOL -> TextColor.color(0x1D1D21);
+            default -> NamedTextColor.GOLD;
+        };
+    }
+
+    private @Nullable TextColor parseColorCode(@Nullable String colorCode) {
+        if (colorCode == null || colorCode.isBlank()) {
+            return null;
+        }
+
+        String normalized = colorCode.trim();
+        if (!normalized.startsWith("#") && normalized.matches("[0-9a-fA-F]{6}")) {
+            normalized = "#" + normalized;
+        }
+
+        TextColor hexColor = TextColor.fromHexString(normalized);
+        if (hexColor != null) {
+            return hexColor;
+        }
+
+        return switch (normalized.toLowerCase(java.util.Locale.ROOT)) {
+            case "black" -> NamedTextColor.BLACK;
+            case "dark_blue", "darkblue" -> NamedTextColor.DARK_BLUE;
+            case "dark_green", "darkgreen" -> NamedTextColor.DARK_GREEN;
+            case "dark_aqua", "darkaqua", "dark_cyan", "darkcyan" -> NamedTextColor.DARK_AQUA;
+            case "dark_red", "darkred" -> NamedTextColor.DARK_RED;
+            case "dark_purple", "darkpurple" -> NamedTextColor.DARK_PURPLE;
+            case "gold", "orange" -> NamedTextColor.GOLD;
+            case "gray", "grey" -> NamedTextColor.GRAY;
+            case "dark_gray", "darkgray", "dark_grey", "darkgrey" -> NamedTextColor.DARK_GRAY;
+            case "blue" -> NamedTextColor.BLUE;
+            case "green" -> NamedTextColor.GREEN;
+            case "aqua", "cyan" -> NamedTextColor.AQUA;
+            case "red" -> NamedTextColor.RED;
+            case "light_purple", "lightpurple", "magenta", "pink" -> NamedTextColor.LIGHT_PURPLE;
+            case "yellow" -> NamedTextColor.YELLOW;
+            case "white" -> NamedTextColor.WHITE;
+            default -> null;
+        };
     }
 
     private static int clampToRange(int value, int minValue, int maxValue) {
@@ -374,7 +449,7 @@ public final class DiceManager {
         }
     }
 
-    public record DieEntry(Location location, Material buttonMaterial, int minValue, int maxValue, int face, boolean uniqueInMachine, boolean timeFormat, int step) {
+    public record DieEntry(Location location, Material buttonMaterial, int minValue, int maxValue, int face, boolean uniqueInMachine, boolean timeFormat, int step, @Nullable String colorCode) {
         public DieEntry {
             int low = Math.min(minValue, maxValue);
             int high = Math.max(minValue, maxValue);

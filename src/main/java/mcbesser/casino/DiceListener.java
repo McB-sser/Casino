@@ -124,6 +124,7 @@ public final class DiceListener implements Listener {
 
         new BukkitRunnable() {
             private int step;
+            private List<Integer> finalFaces = List.of();
 
             @Override
             public void run() {
@@ -135,12 +136,12 @@ public final class DiceListener implements Listener {
                 }
 
                 step++;
-                List<Integer> faces = randomFaces(current);
-                manager.updateFaces(current, faces);
-                soundLocation.getWorld().playSound(soundLocation, Sound.BLOCK_STONE_BUTTON_CLICK_ON, SoundCategory.BLOCKS, 0.7f, 0.75f + (step * 0.05f));
+                finalFaces = randomFaces(current);
+                manager.previewFaces(current, finalFaces);
+                soundLocation.getWorld().playSound(soundLocation, Sound.BLOCK_STONE_BUTTON_CLICK_ON, SoundCategory.BLOCKS, 0.55f, 0.78f + (step * 0.025f));
                 soundLocation.getWorld().playSound(soundLocation, Sound.ITEM_BUNDLE_INSERT, SoundCategory.BLOCKS, 0.35f, 0.8f + (step * 0.03f));
 
-                if (step >= 12) {
+                if (step >= 20) {
                     DiceManager.DiceMachine finished = manager.findMachineByTrigger(machine.triggerLocation());
                     activeRolls.remove(key);
                     cancel();
@@ -148,14 +149,16 @@ public final class DiceListener implements Listener {
                         return;
                     }
 
-                    String result = finished.dice().stream()
-                        .map(die -> DiceListener.this.formatDieFace(die))
-                        .collect(Collectors.joining(" | "));
-                    player.sendActionBar(Component.text("Wuerfel: " + result, NamedTextColor.GOLD));
+                    manager.updateFaces(finished, finalFaces);
+                    DiceManager.DiceMachine resolved = manager.findMachineByTrigger(machine.triggerLocation());
+                    if (resolved == null) {
+                        return;
+                    }
+
                     soundLocation.getWorld().playSound(soundLocation, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.BLOCKS, 0.8f, 1.2f);
                 }
             }
-        }.runTaskTimer(plugin, 8L, 4L);
+        }.runTaskTimer(plugin, 8L, 2L);
     }
 
     private boolean tryRegisterFromTopFrame(ItemFrame frame) {
@@ -253,7 +256,8 @@ public final class DiceListener implements Listener {
                 randomFace(range.minValue(), range.maxValue()),
                 range.uniqueInMachine(),
                 range.timeFormat(),
-                range.step()
+                range.step(),
+                range.colorCode()
             ));
             frame.remove();
 
@@ -326,7 +330,7 @@ public final class DiceListener implements Listener {
                 return range;
             }
         }
-        return new IntRange(1, 6, false, false, 1);
+        return new IntRange(1, 6, false, false, 1, null);
     }
 
     private IntRange parseRange(Sign sign) {
@@ -339,6 +343,7 @@ public final class DiceListener implements Listener {
 
         boolean uniqueInMachine = text.contains("#");
         int step = parseStep(text);
+        String colorCode = parseColorCode(text);
         java.util.regex.Matcher timeMatcher = java.util.regex.Pattern.compile("#?\\s*(\\d{2}:\\d{2})\\s*-\\s*(\\d{2}:\\d{2})(?:\\s*\\|\\s*\\d+)?").matcher(text);
         if (timeMatcher.find()) {
             Integer first = parseTimeValue(timeMatcher.group(1));
@@ -346,7 +351,7 @@ public final class DiceListener implements Listener {
             if (first == null || second == null) {
                 return null;
             }
-            return new IntRange(Math.min(first, second), Math.max(first, second), uniqueInMachine, true, step);
+            return new IntRange(Math.min(first, second), Math.max(first, second), uniqueInMachine, true, step, colorCode);
         }
 
         java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("#?\\s*(-?\\d+)\\s*-\\s*(-?\\d+)(?:\\s*\\|\\s*\\d+)?").matcher(text);
@@ -356,7 +361,7 @@ public final class DiceListener implements Listener {
 
         int first = Integer.parseInt(matcher.group(1));
         int second = Integer.parseInt(matcher.group(2));
-        return new IntRange(Math.min(first, second), Math.max(first, second), uniqueInMachine, false, step);
+        return new IntRange(Math.min(first, second), Math.max(first, second), uniqueInMachine, false, step, colorCode);
     }
 
     private List<Integer> randomFaces(DiceManager.DiceMachine machine) {
@@ -426,6 +431,14 @@ public final class DiceListener implements Listener {
         return Math.max(1, Integer.parseInt(matcher.group(1)));
     }
 
+    private String parseColorCode(String text) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("\\[\\s*([^\\]]+?)\\s*\\]").matcher(text);
+        if (!matcher.find()) {
+            return null;
+        }
+        return matcher.group(1).trim();
+    }
+
     private Integer parseTimeValue(String input) {
         String[] parts = input.split(":");
         if (parts.length != 2) {
@@ -448,16 +461,6 @@ public final class DiceListener implements Listener {
         return (hours * 60) + minutes;
     }
 
-    private String formatDieFace(DiceManager.DieEntry die) {
-        if (!die.timeFormat()) {
-            return String.valueOf(die.face());
-        }
-
-        int hours = Math.floorDiv(die.face(), 60);
-        int minutes = Math.floorMod(die.face(), 60);
-        return String.format("%02d:%02d", hours, minutes);
-    }
-
     private boolean isButtonMaterial(Material material) {
         return Tag.BUTTONS.isTagged(material);
     }
@@ -466,6 +469,6 @@ public final class DiceListener implements Listener {
         return location.getWorld().getUID() + ":" + location.getBlockX() + ":" + location.getBlockY() + ":" + location.getBlockZ();
     }
 
-    private record IntRange(int minValue, int maxValue, boolean uniqueInMachine, boolean timeFormat, int step) {
+    private record IntRange(int minValue, int maxValue, boolean uniqueInMachine, boolean timeFormat, int step, String colorCode) {
     }
 }

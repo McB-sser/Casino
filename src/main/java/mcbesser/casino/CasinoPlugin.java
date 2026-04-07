@@ -7,6 +7,7 @@ public final class CasinoPlugin extends JavaPlugin {
     private SlotMachineManager slotMachineManager;
     private HorseRaceManager horseRaceManager;
     private CoinFlipManager coinFlipManager;
+    private DiceManager diceManager;
     private MemoryManager memoryManager;
     private GrabberManager grabberManager;
     private AttractionStatsManager attractionStatsManager;
@@ -27,6 +28,9 @@ public final class CasinoPlugin extends JavaPlugin {
         coinFlipManager = new CoinFlipManager(this);
         coinFlipManager.load();
         coinFlipManager.spawnAllDisplays();
+        diceManager = new DiceManager(this);
+        diceManager.load();
+        diceManager.spawnAllDisplays();
         memoryManager = new MemoryManager(this);
         memoryManager.load();
         memoryManager.spawnAllDisplays();
@@ -37,6 +41,7 @@ public final class CasinoPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SlotMachineListener(this, slotMachineManager, attractionStatsManager), this);
         getServer().getPluginManager().registerEvents(new HorseRaceListener(this, horseRaceManager, attractionStatsManager), this);
         getServer().getPluginManager().registerEvents(new CoinFlipListener(this, coinFlipManager, attractionStatsManager), this);
+        getServer().getPluginManager().registerEvents(new DiceListener(this, diceManager), this);
         getServer().getPluginManager().registerEvents(new MemoryListener(this, memoryManager, attractionStatsManager), this);
         getServer().getPluginManager().registerEvents(new GrabberListener(this, grabberManager, attractionStatsManager), this);
 
@@ -65,6 +70,9 @@ public final class CasinoPlugin extends JavaPlugin {
         }
         if (coinFlipManager != null) {
             coinFlipManager.shutdown();
+        }
+        if (diceManager != null) {
+            diceManager.shutdown();
         }
         if (memoryManager != null) {
             memoryManager.shutdown();

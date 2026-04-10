@@ -1,4 +1,4 @@
-package mcbesser.casino;
+﻿package mcbesser.casino;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -134,7 +134,7 @@ public final class DiceManager {
                 diceSection.set(diePath + ".button", die.buttonMaterial().name());
                 diceSection.set(diePath + ".min", die.minValue());
                 diceSection.set(diePath + ".max", die.maxValue());
-                diceSection.set(diePath + ".unique", die.uniqueInMachine());
+                diceSection.set(diePath + ".uniq\u00fc", die.uniqueInMachine());
                 diceSection.set(diePath + ".time-format", die.timeFormat());
                 diceSection.set(diePath + ".step", die.step());
                 diceSection.set(diePath + ".color", die.colorCode());

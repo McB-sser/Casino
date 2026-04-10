@@ -1,4 +1,4 @@
-package mcbesser.casino;
+﻿package mcbesser.casino;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -100,7 +100,7 @@ public final class CoinFlipListener implements Listener {
         String key = serializeKey(clicked.getLocation());
         StreakState state = streaks.get(key);
         if (state != null && !state.playerId().equals(player.getUniqueId())) {
-            player.sendMessage(Component.text("Dieser Coinflip laeuft gerade fuer einen anderen Spieler.", NamedTextColor.YELLOW));
+            player.sendMessage(Component.text("Dieser Coinflip l\u00e4uft gerade f\u00fcr einen anderen Spieler.", NamedTextColor.YELLOW));
             return;
         }
 
@@ -114,7 +114,7 @@ public final class CoinFlipListener implements Listener {
         }
 
         if (Boolean.TRUE.equals(activeFlips.get(key))) {
-            player.sendMessage(Component.text("Der Coinflip laeuft bereits.", NamedTextColor.YELLOW));
+            player.sendMessage(Component.text("Der Coinflip l\u00e4uft bereits.", NamedTextColor.YELLOW));
             return;
         }
 

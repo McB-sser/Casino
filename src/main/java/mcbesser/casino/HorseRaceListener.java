@@ -1,4 +1,4 @@
-package mcbesser.casino;
+﻿package mcbesser.casino;
 
 import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
@@ -114,7 +114,7 @@ public final class HorseRaceListener implements Listener {
     private void startRace(Player player, Block lodestone, ItemStack hand) {
         Location location = lodestone.getLocation();
         if (!manager.beginRace(location)) {
-            player.sendMessage(Component.text("Das Rennen laeuft bereits.", NamedTextColor.YELLOW));
+            player.sendMessage(Component.text("Das Rennen l\u00e4uft bereits.", NamedTextColor.YELLOW));
             return;
         }
 
@@ -296,7 +296,7 @@ public final class HorseRaceListener implements Listener {
                 .append(Component.newline())
                 .append(Component.text("Aktivierung:", NamedTextColor.DARK_GREEN))
                 .append(Component.newline())
-                .append(Component.text("ItemFrame mit Pferderuestung am Lodestone.", NamedTextColor.BLACK))
+                .append(Component.text("ItemFrame mit Pferder\u00fcstung am Lodestone.", NamedTextColor.BLACK))
                 .append(Component.newline())
                 .append(Component.text("Danach laufen 4 Mini-Racer im Kreis.", NamedTextColor.BLACK)),
             Component.text("Teilnahme", NamedTextColor.GOLD, TextDecoration.BOLD)
@@ -305,7 +305,7 @@ public final class HorseRaceListener implements Listener {
                 .append(Component.newline())
                 .append(Component.text("Du brauchst 1 Emerald in der Hand.", NamedTextColor.BLACK))
                 .append(Component.newline())
-                .append(Component.text("Du bekommst zufaellig einen Startplatz.", NamedTextColor.BLACK)),
+                .append(Component.text("Du bekommst zuf\u00e4llig einen Startplatz.", NamedTextColor.BLACK)),
             Component.text("Gewinn", NamedTextColor.GOLD, TextDecoration.BOLD)
                 .append(Component.newline())
                 .append(Component.text("Gewinnt dein Pferd:", NamedTextColor.BLACK))

@@ -1,4 +1,4 @@
-package mcbesser.casino;
+﻿package mcbesser.casino;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -134,7 +134,7 @@ public final class SlotMachineListener implements Listener {
     private void startSpin(Player player, Block lecternBlock) {
         Location machineLocation = lecternBlock.getLocation();
         if (!manager.beginSpin(machineLocation)) {
-            player.sendMessage(Component.text("Der Automat laeuft bereits.", NamedTextColor.YELLOW));
+            player.sendMessage(Component.text("Der Automat l\u00e4uft bereits.", NamedTextColor.YELLOW));
             return;
         }
 
@@ -372,7 +372,7 @@ public final class SlotMachineListener implements Listener {
                 .append(Component.text("2x Emerald = 4 Emerald", NamedTextColor.BLACK))
                 .append(Component.newline())
                 .append(Component.newline())
-                .append(Component.text("Nur die sichtbaren 3 Symbole zaehlen.", NamedTextColor.DARK_GRAY))
+                .append(Component.text("Nur die sichtbaren 3 Symbole z\u00e4hlen.", NamedTextColor.DARK_GRAY))
         );
         book.setItemMeta(meta);
         player.openBook(book);

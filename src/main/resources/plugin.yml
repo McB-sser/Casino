@@ -1,5 +1,5 @@
-name: Casino
-version: ${project.version}
+﻿name: Casino
+version: 1.0.0-SNAPSHOT
 main: mcbesser.casino.CasinoPlugin
 api-version: "1.21"
 author: McB_sser

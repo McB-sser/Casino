@@ -1,4 +1,4 @@
-package mcbesser.casino;
+﻿package mcbesser.casino;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -208,7 +208,7 @@ public final class MemoryListener implements Listener {
             return;
         }
         if (state.ownerId() != null && !state.ownerId().equals(player.getUniqueId())) {
-            player.sendMessage(Component.text("Dieses Memory-Spiel gehoert gerade einem anderen Spieler.", NamedTextColor.YELLOW));
+            player.sendMessage(Component.text("Dieses Memory-Spiel geh\u00f6rt gerade einem anderen Spieler.", NamedTextColor.YELLOW));
             return;
         }
 
@@ -343,7 +343,7 @@ public final class MemoryListener implements Listener {
             }
             if (owner != null && owner.isOnline()) {
                 owner.getInventory().addItem(new ItemStack(Material.EMERALD, state.rewardLeft()));
-                owner.sendMessage(Component.text("Memory geloest: +" + state.rewardLeft() + " Emerald", NamedTextColor.GOLD));
+                owner.sendMessage(Component.text("Memory gel\u00f6st: +" + state.rewardLeft() + " Emerald", NamedTextColor.GOLD));
             } else if (center.getWorld() != null) {
                 center.getWorld().dropItemNaturally(center.clone().add(0.5, 0.7, 0.5), new ItemStack(Material.EMERALD, state.rewardLeft()));
             }

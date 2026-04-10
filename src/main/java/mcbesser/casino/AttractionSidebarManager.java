@@ -1,4 +1,4 @@
-package mcbesser.casino;
+﻿package mcbesser.casino;
 
 import java.util.HashMap;
 import java.util.List;
@@ -204,7 +204,7 @@ public final class AttractionSidebarManager implements Listener {
                     ChatColor.GRAY + " ",
                     ChatColor.GOLD + "Deine Werte",
                     label("Partien") + value(stats.plays()),
-                    label("Geloest") + value(stats.wins()),
+                    label("Gel\u00f6st") + value(stats.wins()),
                     label("Bester Gewinn") + value(stats.bestPayout() + "E"),
                     ChatColor.GRAY + " ",
                     ChatColor.GOLD + type.rankingLabel(),

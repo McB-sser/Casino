@@ -1,4 +1,4 @@
-package mcbesser.casino;
+﻿package mcbesser.casino;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -201,7 +201,7 @@ public final class GrabberListener implements Listener {
             return;
         }
         if (!state.ownerId.equals(player.getUniqueId())) {
-            player.sendMessage(Component.text("Dieser Greifarm gehoert gerade einem anderen Spieler.", NamedTextColor.YELLOW));
+            player.sendMessage(Component.text("Dieser Greifarm geh\u00f6rt gerade einem anderen Spieler.", NamedTextColor.YELLOW));
             return;
         }
         if (control == null) {
@@ -620,7 +620,7 @@ public final class GrabberListener implements Listener {
                         .append(Component.newline())
                         .append(Component.text("Chiseled Bookshelf unten.", NamedTextColor.BLACK))
                         .append(Component.newline())
-                        .append(Component.text("Direkt darueber ein Glasblock.", NamedTextColor.BLACK))
+                        .append(Component.text("Direkt dar\u00fcber ein Glasblock.", NamedTextColor.BLACK))
                         .append(Component.newline())
                         .append(Component.text("Am Glas ein ItemFrame mit Chain.", NamedTextColor.BLACK)),
                 Component.text("Steuerung", NamedTextColor.GOLD, TextDecoration.BOLD)
@@ -634,7 +634,7 @@ public final class GrabberListener implements Listener {
                         .append(Component.newline())
                         .append(Component.text("1 Emerald startet genau eine Runde.", NamedTextColor.BLACK))
                         .append(Component.newline())
-                        .append(Component.text("Sobald du den Haken ausloest, endet die Runde danach wieder.", NamedTextColor.BLACK))
+                        .append(Component.text("Sobald du den Haken ausl\u00f6st, endet die Runde danach wieder.", NamedTextColor.BLACK))
                         .append(Component.newline())
                         .append(Component.text("Gewinne laufen erst zum schwarzen Ausgabeschacht links vorne.", NamedTextColor.BLACK)));
         book.setItemMeta(meta);

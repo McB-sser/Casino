@@ -1,4 +1,4 @@
-﻿package mcbesser.casino;
+package mcbesser.casino;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;

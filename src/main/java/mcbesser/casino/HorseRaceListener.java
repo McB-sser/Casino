@@ -1,4 +1,4 @@
-﻿package mcbesser.casino;
+package mcbesser.casino;
 
 import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;

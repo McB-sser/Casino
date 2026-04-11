@@ -1,6 +1,6 @@
-﻿name: Casino
+name: Casino
 version: 1.0.0-SNAPSHOT
 main: mcbesser.casino.CasinoPlugin
-api-version: "1.21"
+api-version: "26.1.1"
 author: McB_sser
 description: Casino plugin prototype with a slot machine minigame.

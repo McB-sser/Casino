@@ -1,4 +1,4 @@
-﻿package mcbesser.casino;
+package mcbesser.casino;
 
 import java.util.ArrayList;
 import java.util.Collections;

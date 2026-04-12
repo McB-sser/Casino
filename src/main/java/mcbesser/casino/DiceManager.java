@@ -241,7 +241,8 @@ public final class DiceManager {
                 spawnDisplay(machine, die);
                 continue;
             }
-            display.text(createFaceComponent(die.location(), die.face(), die.timeFormat(), die.colorCode()));
+            display.text(createFaceComponent(die));
+            display.setTransformation(createDisplayTransformation(die));
         }
     }
 
@@ -313,13 +314,8 @@ public final class DiceManager {
         display.setSeeThrough(false);
         display.setInterpolationDelay(0);
         display.setInterpolationDuration(1);
-        display.text(createFaceComponent(die.location(), die.face(), die.timeFormat(), die.colorCode()));
-        display.setTransformation(new Transformation(
-            new Vector3f(0.0f, 0.0f, 0.0f),
-            new Quaternionf(),
-            new Vector3f(0.85f, 0.85f, 0.85f),
-            new Quaternionf()
-        ));
+        display.text(createFaceComponent(die));
+        display.setTransformation(createDisplayTransformation(die));
         display.getPersistentDataContainer().set(machineKey, PersistentDataType.STRING, serializeKey(machine.triggerLocation()));
         display.getPersistentDataContainer().set(dieKey, PersistentDataType.STRING, serializeKey(die.location()));
     }
@@ -347,18 +343,43 @@ public final class DiceManager {
         return blockLocation.clone().add(0.5, 1.35, 0.5);
     }
 
-    private Component createFaceComponent(Location location, int face, boolean timeFormat, @Nullable String colorCode) {
-        return Component.text(formatFace(face, timeFormat), resolveDisplayColor(location, colorCode));
+    private Component createFaceComponent(DieEntry die) {
+        return Component.text(formatFace(die), resolveDisplayColor(die.location(), die.colorCode()));
     }
 
-    private String formatFace(int face, boolean timeFormat) {
-        if (!timeFormat) {
-            return String.valueOf(face);
+    private Transformation createDisplayTransformation(DieEntry die) {
+        float scale = isStandardDiceIcon(die) ? 3.4f : 1.7f;
+        return new Transformation(
+            new Vector3f(0.0f, 0.0f, 0.0f),
+            new Quaternionf(),
+            new Vector3f(scale, scale, scale),
+            new Quaternionf()
+        );
+    }
+
+    private String formatFace(DieEntry die) {
+        if (!die.timeFormat()) {
+            if (isStandardDiceIcon(die)) {
+                return switch (die.face()) {
+                    case 1 -> "\u2680";
+                    case 2 -> "\u2681";
+                    case 3 -> "\u2682";
+                    case 4 -> "\u2683";
+                    case 5 -> "\u2684";
+                    case 6 -> "\u2685";
+                    default -> String.valueOf(die.face());
+                };
+            }
+            return String.valueOf(die.face());
         }
 
-        int hours = Math.floorDiv(face, 60);
-        int minutes = Math.floorMod(face, 60);
+        int hours = Math.floorDiv(die.face(), 60);
+        int minutes = Math.floorMod(die.face(), 60);
         return String.format("%02d:%02d", hours, minutes);
+    }
+
+    private boolean isStandardDiceIcon(DieEntry die) {
+        return die.minValue() == 1 && die.maxValue() == 6 && die.step() == 1;
     }
 
     private TextColor resolveDisplayColor(Location location, @Nullable String colorCode) {

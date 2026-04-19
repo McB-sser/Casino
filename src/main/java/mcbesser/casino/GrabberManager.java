@@ -270,7 +270,7 @@ public final class GrabberManager {
         head.teleport(headLocation);
         head.setTransformation(new Transformation(
                 new Vector3f(),
-                new Quaternionf().rotateY((float) Math.toRadians(90)),
+                new Quaternionf().rotateY(getHangingItemYaw(machine.front(), 90.0f)),
                 new Vector3f(0.16f, 0.16f, 0.16f),
                 new Quaternionf()));
     }
@@ -394,7 +394,7 @@ public final class GrabberManager {
         display.setTeleportDuration(1);
         display.setTransformation(new Transformation(
                 new Vector3f(),
-                new Quaternionf().rotateY((float) Math.toRadians(25)),
+                new Quaternionf().rotateY(getHangingItemYaw(machine.front(), 25.0f)),
                 new Vector3f(0.24f, 0.24f, 0.24f),
                 new Quaternionf()));
         display.getPersistentDataContainer().set(machineKey, PersistentDataType.STRING, serializeKey(machine.baseLocation()));
@@ -565,7 +565,7 @@ public final class GrabberManager {
         display.setTeleportDuration(1);
         display.setTransformation(new Transformation(
                 new Vector3f(),
-                new Quaternionf().rotateX((float) Math.toRadians(15)),
+                new Quaternionf().rotateY(getCauldronYaw(machine.front())).rotateX((float) Math.toRadians(15)),
                 new Vector3f(0.28f, 0.28f, 0.28f),
                 new Quaternionf()));
         display.getPersistentDataContainer().set(machineKey, PersistentDataType.STRING, serializeKey(machine.baseLocation()));
@@ -588,7 +588,7 @@ public final class GrabberManager {
         display.setTeleportDuration(1);
         display.setTransformation(new Transformation(
                 new Vector3f(),
-                new Quaternionf(),
+                new Quaternionf().rotateY(getCauldronYaw(machine.front())),
                 new Vector3f(0.28f, 0.28f, 0.28f),
                 new Quaternionf()));
         display.getPersistentDataContainer().set(machineKey, PersistentDataType.STRING, serializeKey(machine.baseLocation()));
@@ -636,7 +636,7 @@ public final class GrabberManager {
         display.setTeleportDuration(1);
         display.setTransformation(new Transformation(
                 new Vector3f(),
-                new Quaternionf().rotateY((float) Math.toRadians(90)),
+                new Quaternionf().rotateY(getHangingItemYaw(machine.front(), 90.0f)),
                 new Vector3f(0.16f, 0.16f, 0.16f),
                 new Quaternionf()));
         display.getPersistentDataContainer().set(machineKey, PersistentDataType.STRING, serializeKey(machine.baseLocation()));
@@ -814,15 +814,9 @@ public final class GrabberManager {
     }
 
     private Quaternionf getArrowRotation(BlockFace front, Control control) {
-        float yaw = switch (front) {
-            case NORTH -> (float) Math.toRadians(180);
-            case SOUTH -> 0.0f;
-            case WEST -> (float) Math.toRadians(90);
-            case EAST -> (float) Math.toRadians(-90);
-            default -> 0.0f;
-        };
-        Quaternionf rotation = new Quaternionf().rotateY(yaw);
-        return switch (control) {
+        Control displayedControl = shouldSwapLeftRight(front) ? swapLeftRight(control) : control;
+        Quaternionf rotation = getFlatRotation(front);
+        return switch (displayedControl) {
             case LEFT -> rotation.rotateZ((float) Math.toRadians(45));
             case UP -> rotation.rotateZ((float) Math.toRadians(-45));
             case DOWN -> rotation.rotateZ((float) Math.toRadians(135));
@@ -855,14 +849,47 @@ public final class GrabberManager {
     }
 
     private Quaternionf getFlatRotation(BlockFace front) {
-        float yaw = switch (front) {
+        return new Quaternionf().rotateY(getFacingYaw(front));
+    }
+
+    private boolean shouldSwapLeftRight(BlockFace front) {
+        return front == BlockFace.EAST || front == BlockFace.WEST;
+    }
+
+    private Control swapLeftRight(Control control) {
+        return switch (control) {
+            case LEFT -> Control.RIGHT;
+            case RIGHT -> Control.LEFT;
+            default -> control;
+        };
+    }
+
+    private float getFacingYaw(BlockFace front) {
+        return switch (front) {
             case NORTH -> (float) Math.toRadians(180);
             case SOUTH -> 0.0f;
             case WEST -> (float) Math.toRadians(90);
             case EAST -> (float) Math.toRadians(-90);
             default -> 0.0f;
         };
-        return new Quaternionf().rotateY(yaw);
+    }
+
+    private float getCauldronYaw(BlockFace front) {
+        return switch (front) {
+            case NORTH -> 0.0f;
+            case SOUTH -> (float) Math.toRadians(180);
+            case WEST -> (float) Math.toRadians(90);
+            case EAST -> (float) Math.toRadians(-90);
+            default -> 0.0f;
+        };
+    }
+
+    private float getHangingItemYaw(BlockFace front, float baseYawDegrees) {
+        float yawDegrees = baseYawDegrees;
+        if (front == BlockFace.EAST || front == BlockFace.WEST) {
+            yawDegrees += 90.0f;
+        }
+        return (float) Math.toRadians(yawDegrees);
     }
 
     private void removeAttachedFrame(GrabberMachine machine, boolean dropActivator) {

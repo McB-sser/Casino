@@ -161,7 +161,7 @@ public final class HorseRaceManager {
     }
 
     public void spawnRaceDisplays(Location lodestoneLocation) {
-        if (!lodestoneLocation.isChunkLoaded()) {
+        if (!lodestoneLocation.isChunkLoaded() || !CasinoDisplayUtil.hasNearbyViewer(plugin, lodestoneLocation)) {
             return;
         }
 
@@ -279,6 +279,19 @@ public final class HorseRaceManager {
         activeRaces.clear();
         for (HorseRaceInstance instance : races.values()) {
             removeRaceDisplays(instance.lodestoneLocation());
+        }
+    }
+
+    public void syncDisplays() {
+        for (HorseRaceInstance instance : races.values()) {
+            Location location = instance.lodestoneLocation();
+            if (!CasinoDisplayUtil.hasNearbyViewer(plugin, location)) {
+                removeRaceDisplays(location);
+                continue;
+            }
+            if (getRacerDisplay(location, 0) == null) {
+                spawnRaceDisplays(location);
+            }
         }
     }
 

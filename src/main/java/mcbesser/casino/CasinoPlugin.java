@@ -1,6 +1,7 @@
 package mcbesser.casino;
 
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 
 public final class CasinoPlugin extends JavaPlugin {
 
@@ -12,6 +13,7 @@ public final class CasinoPlugin extends JavaPlugin {
     private GrabberManager grabberManager;
     private AttractionStatsManager attractionStatsManager;
     private AttractionSidebarManager attractionSidebarManager;
+    private BukkitTask displaySyncTask;
 
     @Override
     public void onEnable() {
@@ -55,10 +57,22 @@ public final class CasinoPlugin extends JavaPlugin {
                 grabberManager);
         getServer().getPluginManager().registerEvents(attractionSidebarManager, this);
         attractionSidebarManager.start();
+        displaySyncTask = getServer().getScheduler().runTaskTimer(this, () -> {
+            slotMachineManager.syncHandles();
+            horseRaceManager.syncDisplays();
+            coinFlipManager.syncDisplays();
+            diceManager.syncDisplays();
+            memoryManager.syncDisplays();
+            grabberManager.syncDisplays();
+        }, 20L, 20L);
     }
 
     @Override
     public void onDisable() {
+        if (displaySyncTask != null) {
+            displaySyncTask.cancel();
+            displaySyncTask = null;
+        }
         if (attractionSidebarManager != null) {
             attractionSidebarManager.shutdown();
         }

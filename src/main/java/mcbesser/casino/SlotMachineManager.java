@@ -305,7 +305,7 @@ public final class SlotMachineManager {
 
     private void spawnHandle(SlotMachineInstance instance) {
         Location lecternLocation = instance.lecternLocation();
-        if (!lecternLocation.isChunkLoaded()) {
+        if (!lecternLocation.isChunkLoaded() || !CasinoDisplayUtil.hasNearbyViewer(plugin, lecternLocation)) {
             return;
         }
         removeHandleEntities(lecternLocation);
@@ -329,6 +329,19 @@ public final class SlotMachineManager {
         ItemDisplay handle = findHandle(lecternLocation);
         if (handle != null) {
             handle.remove();
+        }
+    }
+
+    public void syncHandles() {
+        for (SlotMachineInstance instance : machines.values()) {
+            Location location = instance.lecternLocation();
+            if (!CasinoDisplayUtil.hasNearbyViewer(plugin, location)) {
+                removeHandleEntities(location);
+                continue;
+            }
+            if (findHandle(location) == null) {
+                spawnHandle(instance);
+            }
         }
     }
 

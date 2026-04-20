@@ -163,7 +163,7 @@ public final class MemoryManager {
     }
 
     public void spawnDisplays(Location center) {
-        if (!center.isChunkLoaded()) {
+        if (!center.isChunkLoaded() || !CasinoDisplayUtil.hasNearbyViewer(plugin, center)) {
             return;
         }
 
@@ -284,6 +284,19 @@ public final class MemoryManager {
     public void shutdown() {
         for (MemoryBoard board : boards.values()) {
             removeDisplays(board.centerLocation());
+        }
+    }
+
+    public void syncDisplays() {
+        for (MemoryBoard board : boards.values()) {
+            Location center = board.centerLocation();
+            if (!CasinoDisplayUtil.hasNearbyViewer(plugin, center)) {
+                removeDisplays(center);
+                continue;
+            }
+            if (getStatusDisplay(center) == null) {
+                spawnDisplays(center);
+            }
         }
     }
 

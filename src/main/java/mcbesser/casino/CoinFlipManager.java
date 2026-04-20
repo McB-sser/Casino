@@ -141,7 +141,7 @@ public final class CoinFlipManager {
     }
 
     public void spawnDisplays(Location location) {
-        if (!location.isChunkLoaded()) {
+        if (!location.isChunkLoaded() || !CasinoDisplayUtil.hasNearbyViewer(plugin, location)) {
             return;
         }
 
@@ -273,6 +273,19 @@ public final class CoinFlipManager {
     public void shutdown() {
         for (CoinFlipInstance instance : games.values()) {
             removeDisplays(instance.jukeboxLocation());
+        }
+    }
+
+    public void syncDisplays() {
+        for (CoinFlipInstance instance : games.values()) {
+            Location location = instance.jukeboxLocation();
+            if (!CasinoDisplayUtil.hasNearbyViewer(plugin, location)) {
+                removeDisplays(location);
+                continue;
+            }
+            if (getItemDisplay(location, "snowball_static") == null) {
+                spawnDisplays(location);
+            }
         }
     }
 

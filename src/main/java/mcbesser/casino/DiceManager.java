@@ -296,7 +296,8 @@ public final class DiceManager {
 
     private void spawnDisplay(DiceMachine machine, DieEntry die) {
         World world = die.location().getWorld();
-        if (world == null || !die.location().isChunkLoaded()) {
+        if (world == null || !die.location().isChunkLoaded()
+            || !CasinoDisplayUtil.hasNearbyViewer(plugin, machine.triggerLocation())) {
             return;
         }
 
@@ -337,6 +338,21 @@ public final class DiceManager {
             }
         }
         return null;
+    }
+
+    public void syncDisplays() {
+        for (DiceMachine machine : machines.values()) {
+            if (!CasinoDisplayUtil.hasNearbyViewer(plugin, machine.triggerLocation())) {
+                removeDisplays(machine);
+                continue;
+            }
+            if (machine.dice().isEmpty()) {
+                continue;
+            }
+            if (getDisplay(machine.dice().get(0).location()) == null) {
+                spawnDisplays(machine);
+            }
+        }
     }
 
     private Location getDisplayLocation(Location blockLocation) {

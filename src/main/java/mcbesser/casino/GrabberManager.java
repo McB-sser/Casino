@@ -162,7 +162,7 @@ public final class GrabberManager {
 
     public void spawnDisplays(Location base) {
         GrabberMachine machine = getMachine(base);
-        if (machine == null || !base.isChunkLoaded()) {
+        if (machine == null || !base.isChunkLoaded() || !CasinoDisplayUtil.hasNearbyViewer(plugin, base)) {
             return;
         }
 
@@ -495,6 +495,19 @@ public final class GrabberManager {
     public void shutdown() {
         for (GrabberMachine machine : machines.values()) {
             removeDisplays(machine.baseLocation());
+        }
+    }
+
+    public void syncDisplays() {
+        for (GrabberMachine machine : machines.values()) {
+            Location base = machine.baseLocation();
+            if (!CasinoDisplayUtil.hasNearbyViewer(plugin, base)) {
+                removeDisplays(base);
+                continue;
+            }
+            if (getStatusDisplay(base) == null) {
+                spawnDisplays(base);
+            }
         }
     }
 

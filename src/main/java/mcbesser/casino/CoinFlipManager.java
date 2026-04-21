@@ -141,7 +141,7 @@ public final class CoinFlipManager {
     }
 
     public void spawnDisplays(Location location) {
-        if (!location.isChunkLoaded() || !CasinoDisplayUtil.hasNearbyViewer(plugin, location)) {
+        if (!CasinoDisplayUtil.shouldLoadDisplay(plugin, location)) {
             return;
         }
 
@@ -279,14 +279,31 @@ public final class CoinFlipManager {
     public void syncDisplays() {
         for (CoinFlipInstance instance : games.values()) {
             Location location = instance.jukeboxLocation();
-            if (!CasinoDisplayUtil.hasNearbyViewer(plugin, location)) {
+            if (!CasinoDisplayUtil.shouldLoadDisplay(plugin, location)) {
                 removeDisplays(location);
                 continue;
             }
-            if (getItemDisplay(location, "snowball_static") == null) {
+            if (!hasAllDisplays(location)) {
                 spawnDisplays(location);
             }
         }
+    }
+
+    private boolean hasAllDisplays(Location location) {
+        if (getItemDisplay(location, "snowball_static") == null
+            || getItemDisplay(location, "fire_static") == null
+            || getItemDisplay(location, "coin_flip_snowball") == null
+            || getItemDisplay(location, "coin_flip_fire") == null
+            || getTextDisplay(location, "multiplier") == null) {
+            return false;
+        }
+
+        for (int i = 0; i < 3; i++) {
+            if (getBlockDisplay(location, "timer_" + i) == null) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private <T extends Entity> @Nullable T getDisplay(Location location, String type, Class<T> expectedType) {

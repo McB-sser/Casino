@@ -305,7 +305,7 @@ public final class SlotMachineManager {
 
     private void spawnHandle(SlotMachineInstance instance) {
         Location lecternLocation = instance.lecternLocation();
-        if (!lecternLocation.isChunkLoaded() || !CasinoDisplayUtil.hasNearbyViewer(plugin, lecternLocation)) {
+        if (!CasinoDisplayUtil.shouldLoadDisplay(plugin, lecternLocation)) {
             return;
         }
         removeHandleEntities(lecternLocation);
@@ -335,7 +335,7 @@ public final class SlotMachineManager {
     public void syncHandles() {
         for (SlotMachineInstance instance : machines.values()) {
             Location location = instance.lecternLocation();
-            if (!CasinoDisplayUtil.hasNearbyViewer(plugin, location)) {
+            if (!CasinoDisplayUtil.shouldLoadDisplay(plugin, location)) {
                 removeHandleEntities(location);
                 continue;
             }

@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -40,6 +41,7 @@ public final class GrabberManager {
     private final NamespacedKey slotKey;
     private final NamespacedKey controlKey;
     private final Map<String, GrabberMachine> machines = new HashMap<>();
+    private @Nullable Consumer<Location> displayStateRestorer;
 
     public GrabberManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -160,9 +162,13 @@ public final class GrabberManager {
         }
     }
 
+    public void setDisplayStateRestorer(@Nullable Consumer<Location> displayStateRestorer) {
+        this.displayStateRestorer = displayStateRestorer;
+    }
+
     public void spawnDisplays(Location base) {
         GrabberMachine machine = getMachine(base);
-        if (machine == null || !base.isChunkLoaded() || !CasinoDisplayUtil.hasNearbyViewer(plugin, base)) {
+        if (machine == null || !CasinoDisplayUtil.shouldLoadDisplay(plugin, base)) {
             return;
         }
 
@@ -216,7 +222,7 @@ public final class GrabberManager {
         ItemDisplay display = getPrizeDisplay(base, slot);
         if (display == null || !display.isValid()) {
             GrabberMachine machine = getMachine(base);
-            if (machine == null) {
+            if (machine == null || !CasinoDisplayUtil.shouldLoadDisplay(plugin, base)) {
                 return;
             }
             spawnPrizeDisplay(machine, slot, stack);
@@ -227,7 +233,7 @@ public final class GrabberManager {
         }
         display.setItemStack(stack.getType() == Material.AIR ? null : stack.clone());
         GrabberMachine machine = getMachine(base);
-        if (machine == null) {
+        if (machine == null || !CasinoDisplayUtil.shouldLoadDisplay(plugin, base)) {
             return;
         }
         display.teleport(getPrizeLocation(machine, slot, depthOffset));
@@ -247,7 +253,7 @@ public final class GrabberManager {
 
     public void updateClaw(Location base, double col, double row, double depth) {
         GrabberMachine machine = getMachine(base);
-        if (machine == null) {
+        if (machine == null || !CasinoDisplayUtil.shouldLoadDisplay(plugin, base)) {
             return;
         }
 
@@ -327,7 +333,7 @@ public final class GrabberManager {
     public void spawnFloorReward(Location base, ItemStack stack, Location location) {
         removeFloorReward(base);
         GrabberMachine machine = getMachine(base);
-        if (machine == null) {
+        if (machine == null || !CasinoDisplayUtil.shouldLoadDisplay(plugin, base)) {
             return;
         }
         World world = base.getWorld();
@@ -374,7 +380,7 @@ public final class GrabberManager {
     public void spawnCarriedItem(Location base, ItemStack stack, @Nullable Location locationOverride) {
         removeCarriedItem(base);
         GrabberMachine machine = getMachine(base);
-        if (machine == null) {
+        if (machine == null || !CasinoDisplayUtil.shouldLoadDisplay(plugin, base)) {
             return;
         }
         World world = base.getWorld();
@@ -501,14 +507,85 @@ public final class GrabberManager {
     public void syncDisplays() {
         for (GrabberMachine machine : machines.values()) {
             Location base = machine.baseLocation();
-            if (!CasinoDisplayUtil.hasNearbyViewer(plugin, base)) {
+            if (!CasinoDisplayUtil.shouldLoadDisplay(plugin, base)) {
                 removeDisplays(base);
                 continue;
             }
-            if (getStatusDisplay(base) == null) {
+            if (!hasAllDisplays(base)) {
                 spawnDisplays(base);
+                restoreDisplayState(base);
             }
         }
+    }
+
+    private void restoreDisplayState(Location base) {
+        if (displayStateRestorer != null) {
+            displayStateRestorer.accept(base);
+        }
+    }
+
+    private boolean hasAllDisplays(Location base) {
+        World world = base.getWorld();
+        if (world == null) {
+            return false;
+        }
+
+        String key = serializeKey(base);
+        boolean hasStatus = false;
+        boolean hasCable = false;
+        boolean hasHead = false;
+        boolean hasChute = false;
+        boolean hasInput = false;
+        boolean[] controls = new boolean[Control.values().length];
+        boolean[] prizes = new boolean[PRIZE_DISPLAY_COUNT];
+
+        for (Entity entity : world.getNearbyEntities(base.clone().add(0.5, 1.2, 0.5), 3.5, 3.0, 3.5)) {
+            String stored = entity.getPersistentDataContainer().get(machineKey, PersistentDataType.STRING);
+            if (!key.equals(stored)) {
+                continue;
+            }
+
+            String type = entity.getPersistentDataContainer().get(typeKey, PersistentDataType.STRING);
+            if ("status".equals(type) && entity instanceof TextDisplay) {
+                hasStatus = true;
+            } else if ("cable".equals(type) && entity instanceof ItemDisplay) {
+                hasCable = true;
+            } else if ("head".equals(type) && entity instanceof ItemDisplay) {
+                hasHead = true;
+            } else if ("chute".equals(type) && entity instanceof BlockDisplay) {
+                hasChute = true;
+            } else if ("input".equals(type) && entity instanceof BlockDisplay) {
+                hasInput = true;
+            } else if ("control".equals(type) && entity instanceof ItemDisplay) {
+                String controlName = entity.getPersistentDataContainer().get(controlKey, PersistentDataType.STRING);
+                if (controlName != null) {
+                    try {
+                        controls[Control.valueOf(controlName).ordinal()] = true;
+                    } catch (IllegalArgumentException ignored) {
+                    }
+                }
+            } else if ("prize".equals(type) && entity instanceof ItemDisplay) {
+                Integer slot = entity.getPersistentDataContainer().get(slotKey, PersistentDataType.INTEGER);
+                if (slot != null && slot >= 0 && slot < prizes.length) {
+                    prizes[slot] = true;
+                }
+            }
+        }
+
+        if (!hasStatus || !hasCable || !hasHead || !hasChute || !hasInput) {
+            return false;
+        }
+        for (boolean control : controls) {
+            if (!control) {
+                return false;
+            }
+        }
+        for (boolean prize : prizes) {
+            if (!prize) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void spawnControlDisplay(GrabberMachine machine, Control control) {

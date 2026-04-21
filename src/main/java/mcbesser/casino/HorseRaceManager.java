@@ -161,7 +161,7 @@ public final class HorseRaceManager {
     }
 
     public void spawnRaceDisplays(Location lodestoneLocation) {
-        if (!lodestoneLocation.isChunkLoaded() || !CasinoDisplayUtil.hasNearbyViewer(plugin, lodestoneLocation)) {
+        if (!CasinoDisplayUtil.shouldLoadDisplay(plugin, lodestoneLocation)) {
             return;
         }
 
@@ -172,21 +172,7 @@ public final class HorseRaceManager {
         }
 
         for (int i = 0; i < RACER_ITEMS.size(); i++) {
-            ItemDisplay racer = (ItemDisplay) world.spawnEntity(getRacerLocation(lodestoneLocation, i, 0.0), EntityType.ITEM_DISPLAY);
-            racer.setItemStack(RACER_ITEMS.get(i));
-            racer.setBillboard(Display.Billboard.FIXED);
-            racer.setGravity(false);
-            racer.setPersistent(false);
-            racer.setInvulnerable(true);
-            racer.setInterpolationDuration(1);
-            racer.setTransformation(new Transformation(
-                new Vector3f(0.0f, 0.0f, 0.0f),
-                getRacerRotation(0.0),
-                new Vector3f(0.35f, 0.35f, 0.35f),
-                new Quaternionf()
-            ));
-            racer.getPersistentDataContainer().set(raceKey, PersistentDataType.STRING, serializeKey(lodestoneLocation));
-            racer.getPersistentDataContainer().set(racerIndexKey, PersistentDataType.INTEGER, i);
+            spawnRacerDisplay(world, lodestoneLocation, i);
         }
 
         spawnTrackMarkers(lodestoneLocation);
@@ -285,14 +271,77 @@ public final class HorseRaceManager {
     public void syncDisplays() {
         for (HorseRaceInstance instance : races.values()) {
             Location location = instance.lodestoneLocation();
-            if (!CasinoDisplayUtil.hasNearbyViewer(plugin, location)) {
+            if (!CasinoDisplayUtil.shouldLoadDisplay(plugin, location)) {
                 removeRaceDisplays(location);
                 continue;
             }
-            if (getRacerDisplay(location, 0) == null) {
+            if (!hasAllRaceDisplays(location)) {
                 spawnRaceDisplays(location);
             }
         }
+    }
+
+    private boolean hasAllRaceDisplays(Location lodestoneLocation) {
+        World world = lodestoneLocation.getWorld();
+        if (world == null) {
+            return false;
+        }
+
+        String key = serializeKey(lodestoneLocation);
+        boolean[] racers = new boolean[RACER_ITEMS.size()];
+        int markerCount = 0;
+        for (Entity entity : world.getNearbyEntities(lodestoneLocation.clone().add(0.5, 0.8, 0.5), 2.0, 1.5, 2.0)) {
+            String stored = entity.getPersistentDataContainer().get(raceKey, PersistentDataType.STRING);
+            if (!key.equals(stored)) {
+                continue;
+            }
+
+            if (entity instanceof ItemDisplay display) {
+                Integer storedIndex = entity.getPersistentDataContainer().get(racerIndexKey, PersistentDataType.INTEGER);
+                if (storedIndex != null
+                    && storedIndex >= 0
+                    && storedIndex < racers.length
+                    && isExpectedRacerItem(display, storedIndex)) {
+                    racers[storedIndex] = true;
+                }
+            } else if (entity instanceof BlockDisplay
+                && entity.getPersistentDataContainer().has(markerKey, PersistentDataType.BYTE)) {
+                markerCount++;
+            }
+        }
+
+        if (markerCount < 8) {
+            return false;
+        }
+        for (boolean racer : racers) {
+            if (!racer) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isExpectedRacerItem(ItemDisplay display, int racerIndex) {
+        ItemStack stack = display.getItemStack();
+        return stack != null && stack.isSimilar(RACER_ITEMS.get(racerIndex));
+    }
+
+    private void spawnRacerDisplay(World world, Location lodestoneLocation, int racerIndex) {
+        ItemDisplay racer = (ItemDisplay) world.spawnEntity(getRacerLocation(lodestoneLocation, racerIndex, 0.0), EntityType.ITEM_DISPLAY);
+        racer.setItemStack(RACER_ITEMS.get(racerIndex).clone());
+        racer.setBillboard(Display.Billboard.FIXED);
+        racer.setGravity(false);
+        racer.setPersistent(false);
+        racer.setInvulnerable(true);
+        racer.setInterpolationDuration(1);
+        racer.setTransformation(new Transformation(
+            new Vector3f(0.0f, 0.0f, 0.0f),
+            getRacerRotation(0.0),
+            new Vector3f(0.35f, 0.35f, 0.35f),
+            new Quaternionf()
+        ));
+        racer.getPersistentDataContainer().set(raceKey, PersistentDataType.STRING, serializeKey(lodestoneLocation));
+        racer.getPersistentDataContainer().set(racerIndexKey, PersistentDataType.INTEGER, racerIndex);
     }
 
     private String serializeKey(Location location) {

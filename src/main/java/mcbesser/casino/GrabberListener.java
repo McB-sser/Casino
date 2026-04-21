@@ -62,6 +62,10 @@ public final class GrabberListener implements Listener {
         this.plugin = plugin;
         this.manager = manager;
         this.statsManager = statsManager;
+        this.manager.setDisplayStateRestorer(this::syncState);
+        for (GrabberManager.GrabberMachine machine : manager.getMachines()) {
+            syncState(machine.baseLocation());
+        }
     }
 
     @EventHandler
@@ -403,10 +407,12 @@ public final class GrabberListener implements Listener {
 
     private GrabberState createState(Location base) {
         List<ItemStack> prizes = new ArrayList<>(GrabberManager.PRIZE_DISPLAY_COUNT);
+        List<PrizeVisual> visuals = new ArrayList<>(GrabberManager.PRIZE_DISPLAY_COUNT);
         for (int i = 0; i < GrabberManager.PRIZE_DISPLAY_COUNT; i++) {
             prizes.add(randomPrize());
+            visuals.add(randomPrizeVisual());
         }
-        GrabberState state = new GrabberState(prizes);
+        GrabberState state = new GrabberState(prizes, visuals);
         states.put(serializeKey(base), state);
         syncState(base);
         return state;
@@ -441,14 +447,15 @@ public final class GrabberListener implements Listener {
 
     private void syncPrizeDisplays(Location base, GrabberState state) {
         for (int slot = 0; slot < state.prizes.size(); slot++) {
+            PrizeVisual visual = state.visuals.get(slot);
             manager.setPrizeItem(
                     base,
                     slot,
                     state.prizes.get(slot),
-                    ThreadLocalRandom.current().nextDouble(-0.03, 0.03),
-                    ThreadLocalRandom.current().nextFloat(-180.0f, 180.0f),
-                    ThreadLocalRandom.current().nextFloat(-35.0f, 35.0f),
-                    ThreadLocalRandom.current().nextFloat(-35.0f, 35.0f));
+                    visual.depthOffset(),
+                    visual.yaw(),
+                    visual.pitch(),
+                    visual.roll());
         }
     }
 
@@ -581,6 +588,14 @@ public final class GrabberListener implements Listener {
         return PRIZE_POOL.get(ThreadLocalRandom.current().nextInt(PRIZE_POOL.size())).clone();
     }
 
+    private PrizeVisual randomPrizeVisual() {
+        return new PrizeVisual(
+                ThreadLocalRandom.current().nextDouble(-0.03, 0.03),
+                ThreadLocalRandom.current().nextFloat(-180.0f, 180.0f),
+                ThreadLocalRandom.current().nextFloat(-35.0f, 35.0f),
+                ThreadLocalRandom.current().nextFloat(-35.0f, 35.0f));
+    }
+
     private String formatReward(ItemStack reward) {
         return reward.getAmount() + "x " + reward.getType().name();
     }
@@ -643,14 +658,19 @@ public final class GrabberListener implements Listener {
 
     private static final class GrabberState {
         private final List<ItemStack> prizes;
+        private final List<PrizeVisual> visuals;
         private int col = 0;
         private int row = 0;
         private boolean busy;
         private boolean moving;
         private UUID ownerId;
 
-        private GrabberState(List<ItemStack> prizes) {
+        private GrabberState(List<ItemStack> prizes, List<PrizeVisual> visuals) {
             this.prizes = prizes;
+            this.visuals = visuals;
         }
+    }
+
+    private record PrizeVisual(double depthOffset, float yaw, float pitch, float roll) {
     }
 }

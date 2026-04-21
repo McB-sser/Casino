@@ -25,4 +25,10 @@ public final class CasinoDisplayUtil {
         }
         return false;
     }
+
+    public static boolean shouldLoadDisplay(JavaPlugin plugin, Location location) {
+        return location != null
+            && location.isChunkLoaded()
+            && hasNearbyViewer(plugin, location);
+    }
 }

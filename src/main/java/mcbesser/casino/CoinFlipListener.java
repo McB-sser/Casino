@@ -136,9 +136,14 @@ public final class CoinFlipListener implements Listener {
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
         Chunk chunk = event.getChunk();
-        for (CoinFlipManager.CoinFlipInstance instance : manager.getGamesInChunk(event.getWorld(), chunk.getX(), chunk.getZ())) {
-            manager.spawnDisplays(instance.jukeboxLocation());
-        }
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (!chunk.isLoaded()) {
+                return;
+            }
+            for (CoinFlipManager.CoinFlipInstance instance : manager.getGamesInChunk(chunk.getWorld(), chunk.getX(), chunk.getZ())) {
+                manager.spawnDisplays(instance.jukeboxLocation());
+            }
+        }, CasinoDisplayUtil.chunkLoadDisplayDelay(plugin, chunk));
     }
 
     private void startFlip(Player player, Block jukebox, ItemStack hand, int cost, int currentStreak, int currentPendingPayout) {

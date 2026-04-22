@@ -1,6 +1,11 @@
 # Persisted slot machines are stored here automatically.
 display:
   max-view-distance: 64.0
+  sync-interval-ticks: 60
+  proximity-check-interval-ticks: 40
+  unload-delay-ticks: 200
+  chunk-load-display-delay-ticks: 20
+  chunk-load-display-spread-ticks: 40
 slot-machines: {}
 horse-races: {}
 coin-flips: {}

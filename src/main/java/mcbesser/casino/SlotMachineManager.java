@@ -1,5 +1,6 @@
 package mcbesser.casino;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,6 +39,7 @@ public final class SlotMachineManager {
     private final JavaPlugin plugin;
     private final NamespacedKey handleKey;
     private final Map<String, SlotMachineInstance> machines = new HashMap<>();
+    private final Map<String, Set<String>> machineKeysByChunk = new HashMap<>();
     private final Set<String> activeSpins = new HashSet<>();
 
     public SlotMachineManager(JavaPlugin plugin) {
@@ -47,6 +49,7 @@ public final class SlotMachineManager {
 
     public void load() {
         machines.clear();
+        machineKeysByChunk.clear();
 
         ConfigurationSection section = plugin.getConfig().getConfigurationSection(CONFIG_ROOT);
         if (section == null) {
@@ -69,7 +72,9 @@ public final class SlotMachineManager {
             int y = section.getInt(key + ".y");
             int z = section.getInt(key + ".z");
             Location lecternLocation = new Location(world, x, y, z);
-            machines.put(serializeKey(lecternLocation), new SlotMachineInstance(lecternLocation));
+            SlotMachineInstance instance = new SlotMachineInstance(lecternLocation);
+            machines.put(serializeKey(lecternLocation), instance);
+            index(instance);
         }
     }
 
@@ -115,6 +120,7 @@ public final class SlotMachineManager {
 
         SlotMachineInstance instance = new SlotMachineInstance(lecternBlock.getLocation());
         machines.put(key, instance);
+        index(instance);
         initializeShelf(instance);
         spawnHandle(instance);
         save();
@@ -129,6 +135,7 @@ public final class SlotMachineManager {
             return false;
         }
 
+        deindex(removed);
         clearShelf(removed);
         removeHandleEntities(removed.lecternLocation());
         if (dropHandle) {
@@ -146,11 +153,19 @@ public final class SlotMachineManager {
     }
 
     public List<SlotMachineInstance> getMachinesInChunk(World world, int chunkX, int chunkZ) {
-        return machines.values().stream()
-            .filter(instance -> instance.lecternLocation().getWorld().equals(world))
-            .filter(instance -> instance.lecternLocation().getChunk().getX() == chunkX)
-            .filter(instance -> instance.lecternLocation().getChunk().getZ() == chunkZ)
-            .toList();
+        Set<String> keys = machineKeysByChunk.get(chunkKey(world, chunkX, chunkZ));
+        if (keys == null || keys.isEmpty()) {
+            return List.of();
+        }
+
+        List<SlotMachineInstance> result = new ArrayList<>(keys.size());
+        for (String key : keys) {
+            SlotMachineInstance instance = machines.get(key);
+            if (instance != null) {
+                result.add(instance);
+            }
+        }
+        return result;
     }
 
     public boolean beginSpin(Location location) {
@@ -347,6 +362,32 @@ public final class SlotMachineManager {
 
     private String serializeKey(Location location) {
         return location.getWorld().getUID() + ":" + location.getBlockX() + ":" + location.getBlockY() + ":" + location.getBlockZ();
+    }
+
+    private void index(SlotMachineInstance instance) {
+        Location location = instance.lecternLocation();
+        machineKeysByChunk.computeIfAbsent(chunkKey(location), ignored -> new HashSet<>()).add(serializeKey(location));
+    }
+
+    private void deindex(SlotMachineInstance instance) {
+        Location location = instance.lecternLocation();
+        String chunkKey = chunkKey(location);
+        Set<String> keys = machineKeysByChunk.get(chunkKey);
+        if (keys == null) {
+            return;
+        }
+        keys.remove(serializeKey(location));
+        if (keys.isEmpty()) {
+            machineKeysByChunk.remove(chunkKey);
+        }
+    }
+
+    private String chunkKey(Location location) {
+        return chunkKey(location.getWorld(), location.getBlockX() >> 4, location.getBlockZ() >> 4);
+    }
+
+    private String chunkKey(World world, int chunkX, int chunkZ) {
+        return world.getUID() + ":" + chunkX + ":" + chunkZ;
     }
 
     public record SlotMachineInstance(Location lecternLocation) {

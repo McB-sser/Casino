@@ -11,6 +11,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -112,9 +113,15 @@ public final class DiceListener implements Listener {
 
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
-        for (DiceManager.DiceMachine machine : manager.getMachinesInChunk(event.getWorld(), event.getChunk().getX(), event.getChunk().getZ())) {
-            manager.spawnDisplays(machine);
-        }
+        Chunk chunk = event.getChunk();
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (!chunk.isLoaded()) {
+                return;
+            }
+            for (DiceManager.DiceMachine machine : manager.getMachinesInChunk(chunk.getWorld(), chunk.getX(), chunk.getZ())) {
+                manager.spawnDisplays(machine);
+            }
+        }, CasinoDisplayUtil.chunkLoadDisplayDelay(plugin, chunk));
     }
 
     private void rollDice(DiceManager.DiceMachine machine, Player player, String key) {

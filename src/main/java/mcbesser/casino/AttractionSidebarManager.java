@@ -1,6 +1,7 @@
 package mcbesser.casino;
 
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -23,6 +24,7 @@ import org.bukkit.scoreboard.Scoreboard;
 public final class AttractionSidebarManager implements Listener {
 
     private static final String OBJECTIVE_NAME = "casino_attraction";
+    private static final int PLAYER_REFRESH_BUDGET = 6;
 
     private final JavaPlugin plugin;
     private final AttractionStatsManager statsManager;
@@ -34,6 +36,7 @@ public final class AttractionSidebarManager implements Listener {
     private final Map<UUID, Scoreboard> previousScoreboards = new HashMap<>();
     private final Map<UUID, AttractionType> activeTypes = new HashMap<>();
     private BukkitTask task;
+    private int refreshCursor;
 
     public AttractionSidebarManager(
             JavaPlugin plugin,
@@ -56,7 +59,8 @@ public final class AttractionSidebarManager implements Listener {
         if (task != null) {
             task.cancel();
         }
-        task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tickViewers, 10L, 10L);
+        refreshCursor = 0;
+        task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tickViewers, 4L, 10L);
     }
 
     public void shutdown() {
@@ -84,7 +88,17 @@ public final class AttractionSidebarManager implements Listener {
     }
 
     private void tickViewers() {
-        for (Player player : plugin.getServer().getOnlinePlayers()) {
+        List<Player> players = new ArrayList<>(plugin.getServer().getOnlinePlayers());
+        if (players.isEmpty()) {
+            refreshCursor = 0;
+            return;
+        }
+        if (refreshCursor >= players.size()) {
+            refreshCursor = 0;
+        }
+        int count = Math.min(players.size(), PLAYER_REFRESH_BUDGET);
+        for (int i = 0; i < count; i++) {
+            Player player = players.get((refreshCursor + i) % players.size());
             AttractionType type = detectLookedAttraction(player);
             if (type == null) {
                 restore(player);
@@ -92,6 +106,7 @@ public final class AttractionSidebarManager implements Listener {
             }
             show(player, type);
         }
+        refreshCursor = (refreshCursor + count) % players.size();
     }
 
     private AttractionType detectLookedAttraction(Player player) {

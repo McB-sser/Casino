@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -38,6 +40,7 @@ public final class DiceManager {
     private final NamespacedKey dieKey;
     private final Map<String, DiceMachine> machines = new HashMap<>();
     private final Map<String, DiceMachine> machineByBlock = new HashMap<>();
+    private final Map<String, Set<String>> machineKeysByChunk = new HashMap<>();
 
     public DiceManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -48,6 +51,7 @@ public final class DiceManager {
     public void load() {
         machines.clear();
         machineByBlock.clear();
+        machineKeysByChunk.clear();
 
         ConfigurationSection section = plugin.getConfig().getConfigurationSection(CONFIG_ROOT);
         if (section == null) {
@@ -253,22 +257,42 @@ public final class DiceManager {
     }
 
     public Collection<DiceMachine> getMachinesInChunk(World world, int chunkX, int chunkZ) {
-        return machines.values().stream()
-            .filter(machine -> machine.triggerLocation().getWorld().equals(world))
-            .filter(machine -> machine.dice().stream().anyMatch(die ->
-                die.location().getChunk().getX() == chunkX && die.location().getChunk().getZ() == chunkZ))
-            .toList();
+        Set<String> keys = machineKeysByChunk.get(chunkKey(world, chunkX, chunkZ));
+        if (keys == null || keys.isEmpty()) {
+            return List.of();
+        }
+
+        List<DiceMachine> result = new ArrayList<>(keys.size());
+        for (String key : keys) {
+            DiceMachine machine = machines.get(key);
+            if (machine != null) {
+                result.add(machine);
+            }
+        }
+        return result;
     }
 
     private void index(DiceMachine machine) {
+        String machineKey = serializeKey(machine.triggerLocation());
         for (DieEntry die : machine.dice()) {
             machineByBlock.put(serializeKey(die.location()), machine);
+            machineKeysByChunk.computeIfAbsent(chunkKey(die.location()), ignored -> new HashSet<>()).add(machineKey);
         }
     }
 
     private void deindex(DiceMachine machine) {
+        String machineKey = serializeKey(machine.triggerLocation());
         for (DieEntry die : machine.dice()) {
             machineByBlock.remove(serializeKey(die.location()));
+            String chunkKey = chunkKey(die.location());
+            Set<String> keys = machineKeysByChunk.get(chunkKey);
+            if (keys == null) {
+                continue;
+            }
+            keys.remove(machineKey);
+            if (keys.isEmpty()) {
+                machineKeysByChunk.remove(chunkKey);
+            }
         }
     }
 
@@ -489,6 +513,14 @@ public final class DiceManager {
 
     private String serializeKey(Location location) {
         return location.getWorld().getUID() + ":" + location.getBlockX() + ":" + location.getBlockY() + ":" + location.getBlockZ();
+    }
+
+    private String chunkKey(Location location) {
+        return chunkKey(location.getWorld(), location.getBlockX() >> 4, location.getBlockZ() >> 4);
+    }
+
+    private String chunkKey(World world, int chunkX, int chunkZ) {
+        return world.getUID() + ":" + chunkX + ":" + chunkZ;
     }
 
     public record DiceMachine(Location triggerLocation, List<DieEntry> dice) {

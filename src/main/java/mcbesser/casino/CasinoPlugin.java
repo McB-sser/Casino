@@ -13,7 +13,7 @@ public final class CasinoPlugin extends JavaPlugin {
     private GrabberManager grabberManager;
     private AttractionStatsManager attractionStatsManager;
     private AttractionSidebarManager attractionSidebarManager;
-    private BukkitTask displaySyncTask;
+    private BukkitTask[] displaySyncTasks = new BukkitTask[0];
 
     @Override
     public void onEnable() {
@@ -57,22 +57,27 @@ public final class CasinoPlugin extends JavaPlugin {
                 grabberManager);
         getServer().getPluginManager().registerEvents(attractionSidebarManager, this);
         attractionSidebarManager.start();
-        displaySyncTask = getServer().getScheduler().runTaskTimer(this, () -> {
-            slotMachineManager.syncHandles();
-            horseRaceManager.syncDisplays();
-            coinFlipManager.syncDisplays();
-            diceManager.syncDisplays();
-            memoryManager.syncDisplays();
-            grabberManager.syncDisplays();
-        }, 20L, 20L);
+        long displaySyncInterval = Math.max(40L, getConfig().getLong("display.sync-interval-ticks", 60L));
+        long displaySyncStep = Math.max(1L, displaySyncInterval / 6L);
+        long displaySyncStart = 22L;
+        displaySyncTasks = new BukkitTask[] {
+            getServer().getScheduler().runTaskTimer(this, slotMachineManager::syncHandles, displaySyncStart, displaySyncInterval),
+            getServer().getScheduler().runTaskTimer(this, horseRaceManager::syncDisplays, displaySyncStart + displaySyncStep, displaySyncInterval),
+            getServer().getScheduler().runTaskTimer(this, coinFlipManager::syncDisplays, displaySyncStart + displaySyncStep * 2L, displaySyncInterval),
+            getServer().getScheduler().runTaskTimer(this, diceManager::syncDisplays, displaySyncStart + displaySyncStep * 3L, displaySyncInterval),
+            getServer().getScheduler().runTaskTimer(this, memoryManager::syncDisplays, displaySyncStart + displaySyncStep * 4L, displaySyncInterval),
+            getServer().getScheduler().runTaskTimer(this, grabberManager::syncDisplays, displaySyncStart + displaySyncStep * 5L, displaySyncInterval)
+        };
     }
 
     @Override
     public void onDisable() {
-        if (displaySyncTask != null) {
-            displaySyncTask.cancel();
-            displaySyncTask = null;
+        for (BukkitTask displaySyncTask : displaySyncTasks) {
+            if (displaySyncTask != null) {
+                displaySyncTask.cancel();
+            }
         }
+        displaySyncTasks = new BukkitTask[0];
         if (attractionSidebarManager != null) {
             attractionSidebarManager.shutdown();
         }
@@ -94,6 +99,7 @@ public final class CasinoPlugin extends JavaPlugin {
         if (grabberManager != null) {
             grabberManager.shutdown();
         }
+        CasinoDisplayUtil.clearCache();
         if (attractionStatsManager != null) {
             attractionStatsManager.save();
         }

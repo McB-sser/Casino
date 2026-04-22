@@ -187,10 +187,15 @@ public final class MemoryListener implements Listener {
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
         Chunk chunk = event.getChunk();
-        for (MemoryManager.MemoryBoard board : manager.getBoardsInChunk(event.getWorld(), chunk.getX(), chunk.getZ())) {
-            manager.spawnDisplays(board.centerLocation());
-            syncBoard(board.centerLocation());
-        }
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (!chunk.isLoaded()) {
+                return;
+            }
+            for (MemoryManager.MemoryBoard board : manager.getBoardsInChunk(chunk.getWorld(), chunk.getX(), chunk.getZ())) {
+                manager.spawnDisplays(board.centerLocation());
+                syncBoard(board.centerLocation());
+            }
+        }, CasinoDisplayUtil.chunkLoadDisplayDelay(plugin, chunk));
     }
 
     private void handleSlotClick(Player player, Location center, int slotIndex) {

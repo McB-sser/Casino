@@ -279,10 +279,15 @@ public final class GrabberListener implements Listener {
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
         Chunk chunk = event.getChunk();
-        for (GrabberManager.GrabberMachine machine : manager.getMachinesInChunk(event.getWorld(), chunk.getX(), chunk.getZ())) {
-            manager.spawnDisplays(machine.baseLocation());
-            syncState(machine.baseLocation());
-        }
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (!chunk.isLoaded()) {
+                return;
+            }
+            for (GrabberManager.GrabberMachine machine : manager.getMachinesInChunk(chunk.getWorld(), chunk.getX(), chunk.getZ())) {
+                manager.spawnDisplays(machine.baseLocation());
+                syncState(machine.baseLocation());
+            }
+        }, CasinoDisplayUtil.chunkLoadDisplayDelay(plugin, chunk));
     }
 
     private void runGrab(Player player, GrabberManager.GrabberMachine machine, GrabberState state) {

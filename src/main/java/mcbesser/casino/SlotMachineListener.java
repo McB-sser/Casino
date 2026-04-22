@@ -5,6 +5,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Chunk;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -103,16 +104,22 @@ public final class SlotMachineListener implements Listener {
 
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
-        for (SlotMachineManager.SlotMachineInstance instance : manager.getMachinesInChunk(
-            event.getWorld(),
-            event.getChunk().getX(),
-            event.getChunk().getZ()
-        )) {
-            if (manager.findHandle(instance.lecternLocation()) == null) {
-                manager.spawnHandle(instance.lecternLocation());
-                break;
+        Chunk chunk = event.getChunk();
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (!chunk.isLoaded()) {
+                return;
             }
-        }
+            for (SlotMachineManager.SlotMachineInstance instance : manager.getMachinesInChunk(
+                chunk.getWorld(),
+                chunk.getX(),
+                chunk.getZ()
+            )) {
+                if (manager.findHandle(instance.lecternLocation()) == null) {
+                    manager.spawnHandle(instance.lecternLocation());
+                    break;
+                }
+            }
+        }, CasinoDisplayUtil.chunkLoadDisplayDelay(plugin, chunk));
     }
 
     @EventHandler

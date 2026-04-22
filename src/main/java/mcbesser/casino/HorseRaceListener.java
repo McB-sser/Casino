@@ -106,9 +106,14 @@ public final class HorseRaceListener implements Listener {
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
         Chunk chunk = event.getChunk();
-        for (HorseRaceManager.HorseRaceInstance instance : manager.getRacesInChunk(event.getWorld(), chunk.getX(), chunk.getZ())) {
-            manager.spawnRaceDisplays(instance.lodestoneLocation());
-        }
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (!chunk.isLoaded()) {
+                return;
+            }
+            for (HorseRaceManager.HorseRaceInstance instance : manager.getRacesInChunk(chunk.getWorld(), chunk.getX(), chunk.getZ())) {
+                manager.spawnRaceDisplays(instance.lodestoneLocation());
+            }
+        }, CasinoDisplayUtil.chunkLoadDisplayDelay(plugin, chunk));
     }
 
     private void startRace(Player player, Block lodestone, ItemStack hand) {

@@ -40,6 +40,7 @@ public final class HorseRaceManager {
     );
 
     private static final String CONFIG_ROOT = "horse-races";
+    private static final int RACER_INTERPOLATION_TICKS = 2;
 
     private final JavaPlugin plugin;
     private final NamespacedKey raceKey;
@@ -333,7 +334,9 @@ public final class HorseRaceManager {
         racer.setGravity(false);
         racer.setPersistent(false);
         racer.setInvulnerable(true);
-        racer.setInterpolationDuration(1);
+        racer.setInterpolationDelay(0);
+        racer.setInterpolationDuration(RACER_INTERPOLATION_TICKS);
+        racer.setTeleportDuration(RACER_INTERPOLATION_TICKS);
         racer.setTransformation(new Transformation(
             new Vector3f(0.0f, 0.0f, 0.0f),
             getRacerRotation(0.0),

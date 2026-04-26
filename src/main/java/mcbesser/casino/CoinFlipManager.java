@@ -33,6 +33,7 @@ import org.joml.Vector3f;
 public final class CoinFlipManager {
 
     private static final String CONFIG_ROOT = "coin-flips";
+    private static final int COIN_ANIMATION_INTERPOLATION_TICKS = 2;
 
     private final JavaPlugin plugin;
     private final NamespacedKey gameKey;
@@ -337,8 +338,8 @@ public final class CoinFlipManager {
         display.setPersistent(false);
         display.setInvulnerable(true);
         display.setInterpolationDelay(0);
-        display.setInterpolationDuration(1);
-        display.setTeleportDuration(1);
+        display.setInterpolationDuration(COIN_ANIMATION_INTERPOLATION_TICKS);
+        display.setTeleportDuration(COIN_ANIMATION_INTERPOLATION_TICKS);
         display.setTransformation(new Transformation(
                 new Vector3f(0.0f, 0.0f, 0.0f),
                 new Quaternionf(),

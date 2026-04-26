@@ -34,6 +34,8 @@ public final class GrabberManager {
 
     private static final String CONFIG_ROOT = "grabber-machines";
     public static final int PRIZE_DISPLAY_COUNT = 28;
+    private static final int CLAW_MOVEMENT_INTERPOLATION_TICKS = 2;
+    private static final int CARRIED_ITEM_INTERPOLATION_TICKS = 2;
 
     private final JavaPlugin plugin;
     private final NamespacedKey machineKey;
@@ -348,8 +350,8 @@ public final class GrabberManager {
         display.setPersistent(false);
         display.setInvulnerable(true);
         display.setInterpolationDelay(0);
-        display.setInterpolationDuration(1);
-        display.setTeleportDuration(1);
+        display.setInterpolationDuration(CARRIED_ITEM_INTERPOLATION_TICKS);
+        display.setTeleportDuration(CARRIED_ITEM_INTERPOLATION_TICKS);
         display.setTransformation(new Transformation(
                 new Vector3f(),
                 new Quaternionf().rotateX((float) Math.toRadians(90)),
@@ -396,8 +398,8 @@ public final class GrabberManager {
         display.setPersistent(false);
         display.setInvulnerable(true);
         display.setInterpolationDelay(0);
-        display.setInterpolationDuration(1);
-        display.setTeleportDuration(1);
+        display.setInterpolationDuration(CARRIED_ITEM_INTERPOLATION_TICKS);
+        display.setTeleportDuration(CARRIED_ITEM_INTERPOLATION_TICKS);
         display.setTransformation(new Transformation(
                 new Vector3f(),
                 new Quaternionf().rotateY(getHangingItemYaw(machine.front(), 25.0f)),
@@ -698,8 +700,8 @@ public final class GrabberManager {
         display.setPersistent(false);
         display.setInvulnerable(true);
         display.setInterpolationDelay(0);
-        display.setInterpolationDuration(1);
-        display.setTeleportDuration(1);
+        display.setInterpolationDuration(CLAW_MOVEMENT_INTERPOLATION_TICKS);
+        display.setTeleportDuration(CLAW_MOVEMENT_INTERPOLATION_TICKS);
         display.setTransformation(new Transformation(
                 new Vector3f(),
                 getFlatRotation(machine.front()),
@@ -722,8 +724,8 @@ public final class GrabberManager {
         display.setPersistent(false);
         display.setInvulnerable(true);
         display.setInterpolationDelay(0);
-        display.setInterpolationDuration(1);
-        display.setTeleportDuration(1);
+        display.setInterpolationDuration(CLAW_MOVEMENT_INTERPOLATION_TICKS);
+        display.setTeleportDuration(CLAW_MOVEMENT_INTERPOLATION_TICKS);
         display.setTransformation(new Transformation(
                 new Vector3f(),
                 new Quaternionf().rotateY(getHangingItemYaw(machine.front(), 90.0f)),

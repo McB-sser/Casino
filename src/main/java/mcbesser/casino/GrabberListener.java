@@ -38,8 +38,10 @@ public final class GrabberListener implements Listener {
     private static final int ENTRY_COST = 1;
     private static final double MAX_DEPTH = 0.98;
     private static final double SUCCESS_GRAB_DEPTH = 0.42;
-    private static final int MOVE_STEPS = 9;
+    private static final int MOVE_STEPS = 12;
     private static final int DROP_STEPS = 36;
+    private static final int WIN_RETURN_STEPS = 42;
+    private static final int FRONT_DROP_STEPS = 12;
     private static final List<ItemStack> PRIZE_POOL = List.of(
             new ItemStack(Material.EMERALD, 2),
             new ItemStack(Material.DIAMOND),
@@ -489,7 +491,7 @@ public final class GrabberListener implements Listener {
                 }
 
                 tick++;
-                double progress = Math.min(1.0, tick / 28.0);
+                double progress = Math.min(1.0, tick / (double) WIN_RETURN_STEPS);
                 double currentCol = oldCol + ((0 - oldCol) * progress);
                 double currentRow = oldRow + ((0 - oldRow) * progress);
                 manager.updateClaw(base, currentCol, currentRow, 0.0);
@@ -502,7 +504,7 @@ public final class GrabberListener implements Listener {
                 cancel();
                 dropRewardAtFront(player, base, reward, state);
             }
-        }.runTaskTimer(plugin, 0L, 2L);
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 
     private void dropRewardAtFront(Player player, Location base, ItemStack reward, GrabberState state) {
@@ -525,7 +527,7 @@ public final class GrabberListener implements Listener {
                 }
 
                 tick++;
-                double progress = Math.min(1.0, tick / 10.0);
+                double progress = Math.min(1.0, tick / (double) FRONT_DROP_STEPS);
                 Location current = start.clone().add(
                         (end.getX() - start.getX()) * progress,
                         (end.getY() - start.getY()) * progress,

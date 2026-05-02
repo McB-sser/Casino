@@ -101,7 +101,7 @@ public final class DiceManager {
                 }
                 int minValue = dieSection.getInt("min", 1);
                 int maxValue = dieSection.getInt("max", 6);
-                boolean uniqueInMachine = dieSection.getBoolean("unique", false);
+                boolean uniqueInMachine = dieSection.getBoolean("unique", dieSection.getBoolean("uniq\u00fc", false));
                 boolean timeFormat = dieSection.getBoolean("time-format", false);
                 int step = Math.max(1, dieSection.getInt("step", 1));
                 String colorCode = dieSection.getString("color");
@@ -138,7 +138,7 @@ public final class DiceManager {
                 diceSection.set(diePath + ".button", die.buttonMaterial().name());
                 diceSection.set(diePath + ".min", die.minValue());
                 diceSection.set(diePath + ".max", die.maxValue());
-                diceSection.set(diePath + ".uniq\u00fc", die.uniqueInMachine());
+                diceSection.set(diePath + ".unique", die.uniqueInMachine());
                 diceSection.set(diePath + ".time-format", die.timeFormat());
                 diceSection.set(diePath + ".step", die.step());
                 diceSection.set(diePath + ".color", die.colorCode());
